@@ -1,0 +1,169 @@
+import type { InputHTMLAttributes, ReactNode } from 'react'
+import { useSim } from '../state/store'
+
+export function Button({
+  children,
+  variant = 'primary',
+  className = '',
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'quiet' | 'ghost' }) {
+  const look =
+    variant === 'primary'
+      ? 'bg-signal px-4 py-2 text-sm font-medium text-ink hover:bg-signal-hot'
+      : variant === 'quiet'
+        ? 'border border-white/15 px-4 py-2 text-sm text-body hover:border-accent/50'
+        : 'px-3 py-2 text-sm text-mute hover:text-paper'
+  return (
+    <button className={`${look} ${className}`} {...props}>
+      {children}
+    </button>
+  )
+}
+
+export function Chip({
+  on,
+  onClick,
+  children,
+  className = '',
+}: {
+  on: boolean
+  onClick: () => void
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`ns-chip ${on ? 'on' : ''} ${className}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+export function Label({ children, tip }: { children: ReactNode; tip?: string }) {
+  const setGlossary = useSim((s) => s.setGlossary)
+  return (
+    <button
+      type="button"
+      onClick={() => tip && setGlossary(tip)}
+      className={`ns-label ${tip ? 'has-tip' : ''}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+type SliderProps = {
+  label: ReactNode
+  tip?: string
+  value: number
+  min: number
+  max: number
+  step?: number
+  onChange: (value: number) => void
+  display: string
+  caption?: ReactNode
+  ariaLabel: string
+  accent?: 'signal' | 'accent'
+  showValue?: boolean
+} & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'min' | 'max' | 'step' | 'onChange' | 'type' | 'aria-label'>
+
+export function Slider({
+  label,
+  tip,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+  display,
+  caption,
+  ariaLabel,
+  accent = 'signal',
+  showValue = true,
+  ...input
+}: SliderProps) {
+  return (
+    <div className="ns-slider-wrap">
+      <div className="ns-slider-head">
+        <Label tip={tip}>{label}</Label>
+        {showValue ? <span className="ns-slider-value">{display}</span> : null}
+      </div>
+      <input
+        {...input}
+        aria-label={ariaLabel}
+        aria-valuetext={display}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className={`ns-slider accent-${accent}`}
+      />
+      {caption ? <p className="ns-slider-caption">{caption}</p> : null}
+    </div>
+  )
+}
+
+export function Panel({
+  children,
+  className = '',
+  eyebrow,
+  title,
+  onClose,
+  closeLabel = 'Close panel',
+}: {
+  children: ReactNode
+  className?: string
+  eyebrow?: ReactNode
+  title?: ReactNode
+  onClose?: () => void
+  closeLabel?: string
+}) {
+  return (
+    <section className={`ns-panel ${className}`}>
+      {(eyebrow || title || onClose) && (
+        <header className="ns-panel-head">
+          <div>
+            {eyebrow ? <div className="guide-eyebrow">{eyebrow}</div> : null}
+            {title ? <h2>{title}</h2> : null}
+          </div>
+          {onClose ? (
+            <button type="button" className="mission-exit" onClick={onClose} aria-label={closeLabel}>
+              ×
+            </button>
+          ) : null}
+        </header>
+      )}
+      {children}
+    </section>
+  )
+}
+
+export function Stat({ k, v, hint }: { k: string; v: string; hint?: string }) {
+  return (
+    <div className="ns-stat">
+      <dt>{k}</dt>
+      <dd>{v}</dd>
+      {hint ? <small>{hint}</small> : null}
+    </div>
+  )
+}
+
+export function Dock({
+  children,
+  label,
+}: {
+  children: ReactNode
+  label: string
+}) {
+  return (
+    <div className="hud-tools pointer-events-auto" aria-label={label}>
+      {children}
+    </div>
+  )
+}

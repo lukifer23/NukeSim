@@ -1,0 +1,38 @@
+import { expect, test } from '@playwright/test'
+import { collectBrowserErrors } from './browser-errors'
+
+test('10 kt airburst and 1 Mt surface produce a readable field', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'Visual field capture is calibrated for the desktop target.')
+  test.skip(process.env.NUKESIM_VISUAL !== '1', 'Run NUKESIM_VISUAL=1 npx playwright test tests/e2e/visual-field.spec.ts --project=desktop')
+  test.setTimeout(180_000)
+  const errors = collectBrowserErrors(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'I understand — continue' }).click({ force: true })
+  await page.getByRole('button', { name: 'Configure detonation' }).click({ force: true })
+  await page.getByRole('button', { name: 'Run field' }).click({ force: true })
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+  await page.waitForTimeout(800)
+  await page.screenshot({ path: testInfo.outputPath('10kt-early.png'), timeout: 8_000 })
+  await page.getByRole('button', { name: 'Pause' }).click({ force: true })
+  await page.getByRole('button', { name: 'Shock' }).click({ force: true })
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: testInfo.outputPath('10kt-shock.png'), timeout: 8_000 })
+  await page.getByRole('button', { name: 'Stabilize' }).click({ force: true })
+  await page.waitForTimeout(900)
+  await page.screenshot({ path: testInfo.outputPath('10kt-stabilize.png'), timeout: 8_000 })
+
+  await page.getByRole('button', { name: 'Scenario' }).click({ force: true })
+  await page.getByRole('button', { name: '1 Mt', exact: true }).click({ force: true })
+  await page.getByRole('button', { name: 'Surface' }).click({ force: true })
+  await page.getByRole('button', { name: 'Run field' }).click({ force: true })
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: testInfo.outputPath('1mt-surface-early.png'), timeout: 8_000 })
+  await page.getByRole('button', { name: 'Pause' }).click()
+  await page.getByRole('button', { name: 'Stabilize' }).click({ force: true })
+  await page.waitForTimeout(900)
+  await page.screenshot({ path: testInfo.outputPath('1mt-surface-stabilize.png'), timeout: 8_000 })
+
+  const blocking = errors.filter((error) => error.includes('Shader Error') || error.startsWith('page:'))
+  expect(blocking).toEqual([])
+})
