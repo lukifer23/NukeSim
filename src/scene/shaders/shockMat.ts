@@ -9,7 +9,8 @@ export function makeShockMaterial(): THREE.ShaderMaterial {
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
-    toneMapped: false,
+    toneMapped: true,
+    dithering: true,
     vertexShader: /* glsl */ `
       varying vec3 vN;
       varying vec3 vW;
@@ -32,6 +33,8 @@ export function makeShockMaterial(): THREE.ShaderMaterial {
         vec3 col = mix(vec3(0.95, 0.92, 0.86), vec3(0.62, 0.52, 0.42), uDust);
         float a = uFade * (0.04 + fres * 0.46);
         gl_FragColor = vec4(col, a);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }
     `,
   })

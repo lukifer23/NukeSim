@@ -54,17 +54,23 @@ export function makeTerrainMaterial(): THREE.MeshStandardMaterial {
         return bowl + lip;
       }`,
     ).replace(
+      '#include <beginnormal_vertex>',
+      `#include <beginnormal_vertex>
+      // The crater is a vertical displacement field layered on the baked terrain.
+      // Fold its gradient into the baked normal here, before defaultnormal_vertex
+      // turns objectNormal into transformedNormal (doing this in begin_vertex was
+      // too late: vNormal had already been written).
+      {
+        float e = max(6.0, uCraterR * 0.02);
+        float c0 = craterY(length(position.xz - uGz.xz));
+        float cx = craterY(length(position.xz + vec2(e, 0.0) - uGz.xz));
+        float cz = craterY(length(position.xz + vec2(0.0, e) - uGz.xz));
+        objectNormal = normalize(objectNormal + vec3(-(cx - c0) / e, 0.0, -(cz - c0) / e));
+      }`,
+    ).replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
-      float cY = craterY(length(transformed.xz - uGz.xz));
-      transformed.y += cY;
-      float e = max(6.0, uCraterR * 0.02);
-      vec3 pr = transformed + vec3(e, 0.0, 0.0);
-      vec3 pf = transformed + vec3(0.0, 0.0, e);
-      pr.y += craterY(length(pr.xz - uGz.xz)) - cY;
-      pf.y += craterY(length(pf.xz - uGz.xz)) - cY;
-      objectNormal = normalize(cross(pf - transformed, pr - transformed));
-      transformedNormal = normalMatrix * objectNormal;
+      transformed.y += craterY(length(transformed.xz - uGz.xz));
       vWorldP = (modelMatrix * vec4(transformed, 1.0)).xyz;`,
     )
     shader.fragmentShader = shader.fragmentShader.replace(

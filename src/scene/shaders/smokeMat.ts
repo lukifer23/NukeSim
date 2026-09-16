@@ -11,6 +11,8 @@ export function makeSmokeMaterial(opts: { ice: boolean }): THREE.ShaderMaterial 
     transparent: true,
     depthWrite: false,
     fog: false,
+    toneMapped: true,
+    dithering: true,
     side: THREE.DoubleSide,
     vertexShader: /* glsl */ `
       uniform float uTime;
@@ -67,6 +69,8 @@ export function makeSmokeMaterial(opts: { ice: boolean }): THREE.ShaderMaterial 
         col += vec3(0.05, 0.04, 0.03) * boil;
         float a = blob * uOpacity * (0.35 + 0.65 * (1.0 - vUv.y));
         gl_FragColor = vec4(col, clamp(a, 0.0, 0.72));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }
     `,
   })

@@ -47,12 +47,13 @@ export function Fires() {
     const oz = s.impactOffset.z
     let n = 0
     const sample = ignitionSampleFromStore(s)
-    const flicker = 0.86 + 0.14 * Math.sin(t * 9)
+    const reduced = s.reducedMotion
     for (let i = 0; i < seeds.length; i++) {
       const p = seeds[i]
       const r = Math.hypot(p.x - ox, p.z - oz)
       if (r > shock) continue
       if (!ignitesAt(p.x, p.z, p.y, p.cls, sample)) continue
+      const flicker = reduced ? 1 : 0.86 + 0.1 * Math.sin(t * 9 + i * 2.1) + 0.04 * Math.sin(t * 23 + i * 0.7)
       dummy.position.set(p.x, p.y, p.z)
       dummy.scale.set(8 + p.h * 0.045, (14 + p.h * 0.09) * flicker, 8 + p.h * 0.045)
       dummy.lookAt(camera.position)

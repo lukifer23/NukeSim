@@ -38,7 +38,7 @@ export function SmokePlumes() {
     const hob = s.hobResolved()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
     const sample = ignitionSampleFromStore(s)
-    mat.uniforms.uTime.value = t
+    mat.uniforms.uTime.value = s.reducedMotion ? 0 : t
     const dir = (s.windDirDeg * Math.PI) / 180
     mat.uniforms.uWind.value.set(Math.sin(dir) * (s.windSpeedMps / 20), Math.cos(dir) * (s.windSpeedMps / 20))
     mat.uniforms.uOpacity.value = 0.42

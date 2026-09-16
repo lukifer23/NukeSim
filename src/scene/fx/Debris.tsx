@@ -48,6 +48,7 @@ export function Debris() {
     const hob = s.hobResolved()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
     const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const reduced = s.reducedMotion
     let flyN = 0
     let pileAN = 0
     let pileBN = 0
@@ -59,7 +60,7 @@ export function Debris() {
       if (damage !== DamageState.Collapsed && damage !== DamageState.Vaporized) continue
       const age = Math.max(0, t - r / Math.max(260, shock / Math.max(t, 0.2)))
       const y = p.y + p.lift * age - 4.9 * age * age
-      if (y > p.ground && age < 7) {
+      if (!reduced && y > p.ground && age < 7) {
         dummy.position.set(p.x, y, p.z)
         dummy.rotation.set(age * p.spin, age * p.spin * 1.7, age * p.spin * 0.6)
         dummy.scale.setScalar(p.size)

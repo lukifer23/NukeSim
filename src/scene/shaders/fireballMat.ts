@@ -1,11 +1,11 @@
 import * as THREE from 'three'
 
-export const fireballUniforms = {
+const fireballUniforms = {
   uTime: { value: 0 },
   uPulse: { value: 1 },
-  uRadius: { value: 1 },
   uSurface: { value: 0 },
   uCool: { value: 0 },
+  uFade: { value: 1 },
   uInvModel: { value: new THREE.Matrix4() },
   uSteps: { value: 28 },
 }
@@ -16,7 +16,8 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
     transparent: true,
     depthWrite: false,
     depthTest: true,
-    toneMapped: false,
+    toneMapped: true,
+    dithering: true,
     side: THREE.BackSide,
     vertexShader: /* glsl */ `
       varying vec3 vWorld;
@@ -33,7 +34,7 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
       uniform float uPulse;
       uniform float uCool;
       uniform float uSurface;
-      uniform float uRadius;
+      uniform float uFade;
       uniform mat4 uInvModel;
       uniform float uSteps;
       varying vec3 vWorld;
@@ -90,7 +91,7 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
         vec3 col = vec3(0.0);
         float alpha = 0.0;
         float dt = (t1 - t0) / uSteps;
-        float jitter = hash(vec3(gl_FragCoord.xy, fract(uTime))) - 0.5;
+        float jitter = hash(vec3(gl_FragCoord.xy, uTime * 143.0)) - 0.5;
         for (int i = 0; i < 36; i++) {
           if (float(i) >= uSteps) break;
           vec3 p = ro + rd * (t0 + (float(i) + 0.5 + jitter * 0.55) * dt);
@@ -109,7 +110,9 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
           if (alpha > 0.97) break;
         }
         col = 1.0 - exp(-col * 0.82);
-        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.96));
+        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.96) * uFade);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }
     `,
   })

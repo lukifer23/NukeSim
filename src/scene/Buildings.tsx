@@ -173,13 +173,13 @@ function BuildingLayer({ list }: { list: Building[] }) {
     const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
     const ox = s.impactOffset.x
     const oz = s.impactOffset.z
+    const sample = ignitionSampleFromStore(s)
     let wrote = false
     list.forEach((b, i) => {
       if (done.current[i]) return
       const r = Math.hypot(b.x - ox, b.z - oz)
       if (r > shock + 90 && lastK.current[i] === 0) return
       const y0 = city.heightAt(b.x, b.z)
-      const sample = ignitionSampleFromStore(s)
       const event = buildingVisualEvent(b, {
         yieldKt: s.yieldKt,
         hobM: hob,
@@ -338,6 +338,8 @@ function PodiumLayer({ list }: { list: Building[] }) {
     const mesh = ref.current
     if (!mesh) return
     const s = useSim.getState()
+    const dayU = mat.userData.uDay as { value: number } | undefined
+    if (dayU) dayU.value = s.timeOfDay
     if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') return
     const hob = s.hobResolved()
     const t = getRenderTime()
@@ -439,9 +441,11 @@ function RoofLayer({ list }: { list: Building[] }) {
           tmp.position.set(b.x + Math.sin(b.seed) * tw * 0.16, y0 + b.h * pose.scaleY + 2.4 - pose.sunk, b.z + Math.cos(b.seed) * td * 0.16)
           tmp.rotation.set(0, b.yaw, 0)
           tmp.scale.set(Math.max(3, tw * 0.18), 2.4, Math.max(3, td * 0.16))
-        } else tmp.scale.set(0, 0, 0)
-        tmp.updateMatrix()
-        equipment.current.setMatrixAt(i, tmp.matrix)
+          tmp.updateMatrix()
+          equipment.current.setMatrixAt(i, tmp.matrix)
+        } else {
+          equipment.current.setMatrixAt(i, hidden(tmp))
+        }
       }
       gables.current?.setMatrixAt(i, hidden(tmp))
     })

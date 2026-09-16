@@ -12,6 +12,8 @@ export function makeWaterMaterial(color: string, chop = 1): THREE.ShaderMaterial
     },
     transparent: true,
     depthWrite: false,
+    toneMapped: true,
+    dithering: true,
     vertexShader: /* glsl */ `
       uniform float uTime;
       uniform float uChop;
@@ -47,6 +49,8 @@ export function makeWaterMaterial(color: string, chop = 1): THREE.ShaderMaterial
         float spark = pow(max(0.0, dot(n, sun)), 8.0) * 0.08;
         col += vec3(0.7, 0.82, 0.86) * spark;
         gl_FragColor = vec4(col, mix(0.78, 0.92, fres));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }
     `,
   })

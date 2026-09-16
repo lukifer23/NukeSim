@@ -8,7 +8,8 @@ export function makeFireMaterial(): THREE.ShaderMaterial {
     },
     transparent: true,
     depthWrite: false,
-    toneMapped: false,
+    toneMapped: true,
+    dithering: true,
     side: THREE.DoubleSide,
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -51,6 +52,8 @@ export function makeFireMaterial(): THREE.ShaderMaterial {
         float alpha = shape * (0.55 + n * 0.45);
         if (alpha < 0.04) discard;
         gl_FragColor = vec4(col * 1.4, alpha);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }
     `,
   })

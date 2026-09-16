@@ -15,6 +15,8 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
     transparent: true,
     depthWrite: false,
     fog: false,
+    toneMapped: true,
+    dithering: true,
     side: THREE.BackSide,
     vertexShader: /* glsl */ `
       varying vec3 vObj;
@@ -107,7 +109,7 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
         float tEnter = max(max(tsm.x, tsm.y), tsm.z);
         float tExit = min(min(tsx.x, tsx.y), tsx.z);
         if (tExit < max(tEnter, 0.0)) discard;
-        float t = max(tEnter, 0.0) + 0.01 + (hash(vec3(gl_FragCoord.xy, fract(uTime))) - 0.5) * 0.025;
+        float t = max(tEnter, 0.0) + 0.01 + (hash(vec3(gl_FragCoord.xy, uTime * 143.0)) - 0.5) * 0.025;
         float T = 1.0;
         vec3 col = vec3(0.0);
         vec3 sun = normalize(uSun);
@@ -139,6 +141,8 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
         float alpha = (1.0 - T) * uOpacity;
         if (alpha < 0.01) discard;
         gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.94));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }
     `,
   })

@@ -31,7 +31,7 @@ export function Mushroom() {
     const wx = Math.sin(dir) * (wind / 20)
     const wz = Math.cos(dir) * (wind / 20)
     const look = atmosphereLook(s.timeOfDay, s.city.biome)
-    mat.uniforms.uTime.value = t
+    mat.uniforms.uTime.value = s.reducedMotion ? 0 : t
     mat.uniforms.uWind.value.set(wx, wz)
     mat.uniforms.uGrow.value = Math.max(0.28, grow)
     mat.uniforms.uSurface.value = surface ? 1 : 0

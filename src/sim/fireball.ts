@@ -36,11 +36,34 @@ export function thermalPulseDurationS(yieldKt: number): number {
   return 0.417 * yieldKt ** 0.44
 }
 
+/**
+ * Seconds for the luminous fireball to reach its maximum radius. Hydrodynamic
+ * expansion is fast; growth time scales with R_max (~W^0.4), not with the
+ * thermal pulse. The old `1.8·W^0.4` put 1 Mt at ~37 s, so the fireball was
+ * still inflating when it was hidden at t=24 and never read as a detonation.
+ */
+export function fireballGrowthDurationS(yieldKt: number): number {
+  return Math.min(8, Math.max(0.28, 0.22 * yieldKt ** 0.4))
+}
+
 /** Visual fireball radius at sim-time t (grows then holds). */
 export function fireballRadiusAtTimeM(yieldKt: number, tS: number, surface: boolean): number {
   const rMax = fireballMaxRadiusM(yieldKt, surface)
-  const grow = Math.max(0.4, 1.8 * yieldKt ** 0.4) // seconds to max
+  const grow = fireballGrowthDurationS(yieldKt)
   const u = Math.min(1, Math.max(0, tS / grow))
-  const ease = 1 - (1 - u) ** 3
+  const ease = 1 - (1 - u) ** 2.6
   return rMax * ease
+}
+
+/**
+ * Buoyant rise of the luminous fireball after breakaway. Returns metres above
+ * the burst height; used so the glow visibly lifts into the stem instead of
+ * freezing while the cloud rises away from it.
+ */
+export function fireballRiseM(yieldKt: number, tS: number, radiusM: number): number {
+  const grow = fireballGrowthDurationS(yieldKt)
+  const since = Math.max(0, tS - grow)
+  const ceiling = Math.max(90, radiusM * 1.1)
+  const u = Math.min(1, since / 22)
+  return ceiling * (1 - (1 - u) ** 2)
 }

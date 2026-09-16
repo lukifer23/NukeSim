@@ -22,11 +22,13 @@ export function App() {
 function Sandbox() {
   const compact = useCompactSandbox()
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      useSim.getState().setReduced(true)
-    }
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const apply = () => useSim.getState().setReduced(motion.matches)
+    apply()
+    motion.addEventListener('change', apply)
     const shared = decodeScenario(window.location.search)
     if (shared) useSim.getState().loadSharedScenario(shared)
+    return () => motion.removeEventListener('change', apply)
   }, [])
   if (compact) return <CompactLanding />
   return (

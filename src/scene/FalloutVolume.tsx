@@ -51,6 +51,8 @@ function FalloutPoly({
     return new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
+      toneMapped: true,
+      dithering: true,
       side: THREE.DoubleSide,
       uniforms: {
         uColor: { value: c },
@@ -80,6 +82,8 @@ function FalloutPoly({
           if (prog <= 0.001) discard;
           float grain = 0.82 + 0.18 * hash(vGz * 0.02);
           gl_FragColor = vec4(uColor, uOpacity * prog * grain);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
         }
       `,
     })

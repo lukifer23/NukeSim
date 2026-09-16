@@ -28,7 +28,10 @@ export function makeFacadeMaterial(opts: {
   const mat = new THREE.MeshStandardMaterial({
     roughness: opts.roughness,
     metalness: opts.metalness,
-    vertexColors: true,
+    // Instance tints arrive through InstancedMesh.instanceColor. Setting
+    // vertexColors true without a `color` attribute zeroed vColor and with it
+    // every wall albedo, leaving buildings lit only by the constant emissive.
+    vertexColors: false,
     map: opts.map ?? null,
     normalMap: opts.normalMap ?? null,
     aoMap: opts.armMap ?? null,

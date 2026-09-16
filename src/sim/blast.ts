@@ -75,9 +75,21 @@ export function arrivalTimeS(yieldKt: number, hobM: number, rangeM: number): num
   return rangeM / (SOUND_MPS * machBoost)
 }
 
-/** Invert arrival: ground radius of the shock front at time t. */
+/**
+ * Invert arrival: ground radius of the shock front at time t.
+ *
+ * The scene evaluates this several times per frame (terrain, shock, fires,
+ * debris, smoke, every building layer, camera). One memoized result per
+ * unique (yield, HOB, time) collapses ~12 bisections into one without changing
+ * any returned value.
+ */
+let shockMemoKey = ''
+let shockMemoValue = 0
+
 export function shockRadiusAtTimeM(yieldKt: number, hobM: number, tS: number): number {
   if (tS <= 0) return 0
+  const key = `${yieldKt}|${hobM}|${tS}`
+  if (key === shockMemoKey) return shockMemoValue
   let lo = 0
   let hi = blastGroundRangeM(yieldKt, hobM, 0.1) * 1.4
   for (let i = 0; i < 22; i++) {
@@ -85,7 +97,9 @@ export function shockRadiusAtTimeM(yieldKt: number, hobM: number, tS: number): n
     if (arrivalTimeS(yieldKt, hobM, mid) < tS) lo = mid
     else hi = mid
   }
-  return (lo + hi) / 2
+  shockMemoKey = key
+  shockMemoValue = (lo + hi) / 2
+  return shockMemoValue
 }
 
 /**
