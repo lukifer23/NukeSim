@@ -33,8 +33,8 @@ export function MissionChip({ onOpen }: { onOpen: () => void }) {
     line = observation.headline
     action = 'Explain the result'
   } else if (mission.step === 'configure-baseline' || mission.step === 'configure-comparison') {
-    line = 'Set the lesson target in Scenario, then run the field.'
-    action = 'Open lesson'
+    line = 'The target is loaded in Setup. Review it, then run the field.'
+    action = 'Open setup'
   } else if (mission.step === 'explain' || mission.step === 'complete') {
     line = observation?.headline ?? 'Mission result is ready.'
     action = null
@@ -126,7 +126,7 @@ function ActiveMission({ lessonId }: { lessonId: string }) {
           <p className="guide-hook">Target: {formatYield(expected.yieldKt)} · {expected.hobMode === 'surface' ? 'surface burst' : expected.hobMode.replaceAll('-', ' ')}.</p>
           <div className={`mission-status ${matches ? 'ready' : 'changed'}`}>
             <strong>{matches ? 'Scenario ready' : 'Scenario changed'}</strong>
-            <span>{matches ? 'Use Run field in the scenario panel.' : 'This run will remain free-play unless you restore the lesson target.'}</span>
+            <span>{matches ? 'The target is loaded. Open Setup and run the field.' : 'This run remains free-play unless you restore the lesson target.'}</span>
           </div>
           {!matches && <div className="guide-actions"><button onClick={restore}>Restore lesson setup</button></div>}
           <p className="mission-help">Controls stay unlocked. The mission advances only when the declared scenario actually runs.</p>

@@ -11,6 +11,7 @@ import { District } from '../../src/city/types'
 import { craterReliefM } from '../../src/scene/craterRelief'
 import { massingGeometry, topFootprint } from '../../src/scene/massing'
 import { buildShore } from '../../src/scene/shore'
+import { buildingVisualEvent } from '../../src/scene/buildingVisualEvent'
 
 describe('atmosphere', () => {
   it('returns finite lighting for night and noon on every biome', () => {
@@ -105,14 +106,28 @@ describe('ocean shore', () => {
 })
 
 describe('damage interpolation', () => {
-  it('collapsed pose is intact at k=0 and flattened at k=1', () => {
+  it('does not squash a collapsing building before the rubble swap', () => {
     const b = {
       x: 0, z: 0, w: 20, d: 16, h: 40, yaw: 0, class: 'masonry' as const,
       occupancy: 10, district: District.Core, variant: 'walkup' as const,
+      floors: 11, seed: 0.42, cols: 6, podiumH: 0,
     }
     const a = damagePose(b, DamageState.Collapsed, 0)
+    const mid = damagePose(b, DamageState.Collapsed, 0.5)
     const z = damagePose(b, DamageState.Collapsed, 1)
     expect(a.scaleY).toBeCloseTo(1)
+    expect(mid.scaleY).toBe(1)
     expect(z.scaleY).toBeLessThan(0.3)
+  })
+
+  it('creates deterministic visual events from the same field', () => {
+    const b = {
+      x: 120, z: -80, w: 20, d: 16, h: 40, yaw: 0, class: 'masonry' as const,
+      occupancy: 10, district: District.Core, variant: 'walkup' as const,
+      floors: 11, seed: 0.42, cols: 6, podiumH: 0,
+    }
+    const field = { yieldKt: 100, hobM: 0, fireballRadiusM: 140, impactX: 0, impactZ: 0, ignites: () => true }
+    expect(buildingVisualEvent(b, field)).toEqual(buildingVisualEvent(b, field))
+    expect(buildingVisualEvent(b, field)).toMatchObject({ ignites: true, seed: 0.42 })
   })
 })

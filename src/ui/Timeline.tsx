@@ -2,6 +2,7 @@ import { formatTime } from '../sim/units'
 import { useSim } from '../state/store'
 import { fieldMoment } from './fieldMoment'
 import { Slider } from './controls'
+import { Activity, CircleStop, Gauge, Pause, Play, RotateCcw } from 'lucide-react'
 
 const MARKS = [
   { t: 0.001, label: '1 ms' },
@@ -73,19 +74,20 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
         </>
       )}
       <div className="timeline-toolbar">
-        <button className="bg-white/10 px-3 py-1 text-xs text-paper" onClick={() => setPlaying(!playing)}>
+        <button className="timeline-primary" onClick={() => setPlaying(!playing)}>
+          {playing ? <Pause aria-hidden="true" size={15} fill="currentColor" /> : <Play aria-hidden="true" size={15} fill="currentColor" />}
           {playing ? 'Pause' : 'Play'}
         </button>
         {!compact && (
           <>
-            <button className="px-2 py-1 text-xs text-mute" onClick={() => setSimTime(0)}>
-              Flash
+            <button className="timeline-jump" onClick={() => setSimTime(0)}>
+              <RotateCcw aria-hidden="true" size={14} /> Flash
             </button>
-            <button className="px-2 py-1 text-xs text-mute" onClick={() => setSimTime(4)}>
-              Shock
+            <button className="timeline-jump" onClick={() => setSimTime(4)}>
+              <Activity aria-hidden="true" size={14} /> Shock
             </button>
-            <button className="px-2 py-1 text-xs text-mute" onClick={() => setSimTime(90)}>
-              Stabilize
+            <button className="timeline-jump" onClick={() => setSimTime(90)}>
+              <CircleStop aria-hidden="true" size={14} /> Stabilize
             </button>
           </>
         )}
@@ -99,7 +101,7 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
         >
           Debrief
         </button>
-        <span className="ml-auto font-mono text-[10px] text-mute">rate</span>
+        <span className="ml-auto flex items-center gap-1 font-mono text-[11px] text-mute"><Gauge aria-hidden="true" size={14} /> rate</span>
         {[0.5, 1, 3].map((v) => (
           <button
             key={v}

@@ -10,7 +10,7 @@ NukeSim is an educational model. It is not for emergency planning or targeting. 
 2. Predict the result before loading the field, then run the declared baseline and comparison.
 3. Read the causal observation from immutable run snapshots instead of trusting the animation or edited controls.
 4. Complete the explanation to save local, model-versioned progress. No account or backend is involved.
-5. Move to **Explore** or **Compare** for free investigation, probes, timeline, and model limits.
+5. Move to **Inspect** or **Compare** for free investigation, probes, timeline, and model limits. The field, ground-zero, and cloud cameras are explicit views; scrubbing time never silently changes the camera.
 
 ## Run
 
@@ -29,6 +29,7 @@ npm run test:coverage # enforced model and state coverage gates
 npm run test:e2e      # desktop/tablet/phone and Academy accessibility
 npm run build
 npm run check:bundle  # 105 KiB main / 360 KiB lazy scene gzip ceilings
+npm run check:assets  # 6 MiB packaged visual-asset ceiling
 npm run verify        # full non-hardware release gate
 npm run test:perf     # headed Chrome FPS gate on the documented M3 Pro target
 npm run preview
@@ -66,7 +67,7 @@ Glasstone & Dolan, *The Effects of Nuclear Weapons*, 1977; Fletcher et al., CEX-
 
 ## Stack
 
-Vite 8 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · Tailwind 4 · Vitest
+Vite 8 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · Tailwind 4 · Lucide · Vitest
 
 ```
 src/sim     pure physics, no React, no Three
@@ -76,3 +77,5 @@ src/scene   WebGL world
 src/ui      bench, probe, academy, about
 docs/       model card and city notes
 ```
+
+The simulation uses one progressive **Setup** surface instead of competing workspace tabs. Environment controls stay available in the same sheet, collapsed until needed. Renderer quality may adapt before a run, then locks for that run so a comparison cannot change appearance midway through playback. Packaged texture sources and hashes are recorded in [`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md).

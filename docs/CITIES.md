@@ -45,3 +45,5 @@ All five worlds are generated from a seed plus a biome spec. None are real place
 ## Generator notes
 
 `src/city/generate.ts` turns a biome into height, water, districts, streets, buildings, landmarks, and a land ground zero. Instance caps: harbor ≤ 2,400, typical cities ≤ 1,400, North Haven ≤ 420. Streets are empty rights-of-way, not painted lines on a solid brick. Detonation uses that land ground zero, not the map origin.
+
+The generator assigns eleven deterministic massing families: houses, rowhouses, walkups, courtyard blocks, towers, stepped towers, slabs, sheds, warehouses, bunkers, and civic buildings. Masonry, concrete, and roof surfaces use the locally packaged CC0 material sets listed in [`ASSET_PROVENANCE.md`](ASSET_PROVENANCE.md); wood and steel retain deterministic procedural surfaces. Damage swaps collapsed or vaporized structures to seeded rubble events instead of continuously flattening intact building meshes.

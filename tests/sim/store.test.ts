@@ -11,6 +11,25 @@ describe('simulation run state', () => {
     const s = useSim.getState()
     expect(s.workspace).toBe('explore')
     expect(s.overlays).toEqual({ blast: true, thermal: false, radiation: false, fallout: true, fireball: true })
+    expect(s.cameraMode).toBe('field')
+    expect(s.renderQuality).toBe('high')
+  })
+
+  it('keeps camera intent stable while scrubbing and locks quality for a run', () => {
+    const s = useSim.getState()
+    s.accept()
+    useSim.getState().setPhase('bench')
+    useSim.getState().setCameraMode('cloud')
+    useSim.getState().setSimTime(90)
+    expect(useSim.getState().cameraMode).toBe('cloud')
+    useSim.getState().setRenderQuality('balanced')
+    useSim.getState().startLaunch()
+    expect(useSim.getState().cameraMode).toBe('field')
+    expect(useSim.getState().qualityLocked).toBe(true)
+    useSim.getState().setRenderQuality('safe')
+    expect(useSim.getState().renderQuality).toBe('balanced')
+    useSim.getState().setYield(1000)
+    expect(useSim.getState().qualityLocked).toBe(false)
   })
 
   it('invalidates a completed run and clears a stale probe when physics inputs change', () => {

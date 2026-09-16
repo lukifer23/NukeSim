@@ -17,13 +17,14 @@ import { makeFacadeMaterial, styleId } from './shaders/facadeMat'
 import { buildingAtlas } from './windowAtlas'
 import { ignitesAt, ignitionSampleFromStore, resetIgnitionCache } from './ignitionField'
 import { massingGeometry } from './massing'
+import { buildingVisualEvent } from './buildingVisualEvent'
 
 const CLASS_COLOR: Record<string, string> = {
-  [BuildingClass.Wood]: '#9a7348',
-  [BuildingClass.Masonry]: '#8a5544',
-  [BuildingClass.Steel]: '#6a7884',
-  [BuildingClass.Concrete]: '#8a8680',
-  [BuildingClass.Heavy]: '#4a5056',
+  [BuildingClass.Wood]: '#b48e67',
+  [BuildingClass.Masonry]: '#b99b8b',
+  [BuildingClass.Steel]: '#929da4',
+  [BuildingClass.Concrete]: '#c4beb4',
+  [BuildingClass.Heavy]: '#8f969b',
 }
 
 function wallColor(cls: string, biomeId: string): string {
@@ -46,7 +47,7 @@ function wallColor(cls: string, biomeId: string): string {
     if (cls === BuildingClass.Wood) return '#8a6e4e'
     if (cls === BuildingClass.Masonry) return '#9a8068'
   }
-  return CLASS_COLOR[cls] ?? '#666'
+  return CLASS_COLOR[cls] ?? '#aaa69e'
 }
 
 function dummy() {
@@ -54,7 +55,11 @@ function dummy() {
 }
 
 function hidden(tmp: THREE.Object3D) {
-  tmp.scale.set(0, 0, 0)
+  // Keep hidden instances non-degenerate and outside every shadow frustum.
+  // Zero or paper-thin matrices can create enormous triangular shadow acne.
+  tmp.position.set(0, -10000, 0)
+  tmp.rotation.set(0, 0, 0)
+  tmp.scale.setScalar(0.001)
   tmp.updateMatrix()
   return tmp.matrix
 }
@@ -79,6 +84,7 @@ export function Buildings() {
           <BuildingLayer list={list} />
           <PodiumLayer list={list.filter((b) => b.podiumH > 4)} />
           <RoofLayer list={list} />
+          <RubbleLayer list={list} />
         </group>
       ))}
     </>
@@ -118,6 +124,8 @@ function BuildingLayer({ list }: { list: Building[] }) {
         metalness: cls === BuildingClass.Steel ? 0.38 : 0.07,
         roughness: 0.84,
         map: atlas?.facade ?? null,
+        normalMap: atlas?.facadeNormal ?? null,
+        armMap: atlas?.facadeArm ?? null,
       }),
     [cls, atlas],
   )
@@ -171,9 +179,17 @@ function BuildingLayer({ list }: { list: Building[] }) {
       const r = Math.hypot(b.x - ox, b.z - oz)
       if (r > shock + 90 && lastK.current[i] === 0) return
       const y0 = city.heightAt(b.x, b.z)
-      const psi = overpressureAtRangePsi(s.yieldKt, hob, r)
-      const damage = damageFromOverpressure(cls as Building['class'], psi, r < fb)
-      const arrival = arrivalTimeS(s.yieldKt, hob, r)
+      const sample = ignitionSampleFromStore(s)
+      const event = buildingVisualEvent(b, {
+        yieldKt: s.yieldKt,
+        hobM: hob,
+        fireballRadiusM: fb,
+        impactX: ox,
+        impactZ: oz,
+        ignites: (building) => ignitesAt(building.x, building.z, y0 + building.h * 0.5, building.class, sample),
+      })
+      const damage = event.damage
+      const arrival = event.arrivalS
       const k = damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - arrival, 0, 0.55)
       lastK.current[i] = k
       const pose = damagePose(b, damage, k)
@@ -182,8 +198,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
       else if (damage === DamageState.Collapsed) cTmp.set('#2a2018')
       else if (damage === DamageState.Severe) cTmp.offsetHSL(0, -0.12, -0.18)
       else if (damage === DamageState.Moderate || damage === DamageState.Glass) cTmp.offsetHSL(0.02, -0.08, -0.1)
-      const sample = ignitionSampleFromStore(s)
-      if (ignitesAt(b.x, b.z, y0 + b.h * 0.5, cls, sample) && pose.scaleY > 0.2) cTmp.lerp(ignite, 0.4)
+      if (event.ignites && pose.scaleY > 0.2) cTmp.lerp(ignite, 0.4)
       const towerW = b.podiumH > 4 ? b.w * 0.68 : b.w
       const towerD = b.podiumH > 4 ? b.d * 0.68 : b.d
       tmp.position.set(b.x, y0 + (b.h * pose.scaleY) / 2 - pose.sunk, b.z)
@@ -204,6 +219,88 @@ function BuildingLayer({ list }: { list: Building[] }) {
   return <instancedMesh ref={ref} args={[geo, mat, list.length]} material={mat} castShadow receiveShadow />
 }
 
+function RubbleLayer({ list }: { list: Building[] }) {
+  const fragmentsPerBuilding = 4
+  const count = list.length * fragmentsPerBuilding
+  const ref = useRef<THREE.InstancedMesh>(null)
+  const tmp = useMemo(() => dummy(), [])
+  const color = useMemo(() => new THREE.Color(), [])
+  const city = useSim((s) => s.city)
+  const fieldSig = useSim((s) => s.runRevision)
+  const done = useRef(new Uint8Array(list.length))
+
+  useLayoutEffect(() => {
+    const mesh = ref.current
+    if (!mesh) return
+    done.current = new Uint8Array(list.length)
+    for (let i = 0; i < count; i++) mesh.setMatrixAt(i, hidden(tmp))
+    mesh.instanceMatrix.needsUpdate = true
+  }, [count, fieldSig, list.length, tmp])
+
+  useFrame(() => {
+    const mesh = ref.current
+    if (!mesh) return
+    const s = useSim.getState()
+    if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') return
+    const t = getRenderTime()
+    const hob = s.hobResolved()
+    const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
+    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const sample = ignitionSampleFromStore(s)
+    let wrote = false
+    list.forEach((b, buildingIndex) => {
+      if (done.current[buildingIndex]) return
+      const range = Math.hypot(b.x - s.impactOffset.x, b.z - s.impactOffset.z)
+      if (range > shock + 90) return
+      const y0 = city.heightAt(b.x, b.z)
+      const event = buildingVisualEvent(b, {
+        yieldKt: s.yieldKt,
+        hobM: hob,
+        fireballRadiusM: fb,
+        impactX: s.impactOffset.x,
+        impactZ: s.impactOffset.z,
+        ignites: (building) => ignitesAt(building.x, building.z, y0 + building.h * 0.5, building.class, sample),
+      })
+      const k = event.damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - event.arrivalS, 0, 0.55)
+      const rubble = event.damage === DamageState.Collapsed || event.damage === DamageState.Vaporized
+      const severe = event.damage === DamageState.Severe
+      const visible = (rubble && k >= 0.58) || (severe && k >= 0.72)
+      for (let fragment = 0; fragment < fragmentsPerBuilding; fragment++) {
+        const index = buildingIndex * fragmentsPerBuilding + fragment
+        if (!visible || (severe && fragment > 1)) {
+          mesh.setMatrixAt(index, hidden(tmp))
+          continue
+        }
+        const angle = b.seed * 31.7 + fragment * 1.73
+        const spread = rubble ? 0.12 + fragment * 0.045 : 0.08
+        const fw = Math.max(0.8, b.w * (0.045 + fragment * 0.006))
+        const fd = Math.max(0.8, b.d * (0.04 + fragment * 0.005))
+        const fh = Math.max(0.65, Math.min(2.1, b.h * (0.012 + fragment * 0.003)))
+        tmp.position.set(b.x + Math.cos(angle) * b.w * spread, y0 + fh * 0.48, b.z + Math.sin(angle) * b.d * spread)
+        tmp.rotation.set(0.12 * Math.sin(angle * 1.7), b.yaw + angle, 0.15 * Math.cos(angle))
+        tmp.scale.set(fw, fh, fd)
+        tmp.updateMatrix()
+        mesh.setMatrixAt(index, tmp.matrix)
+        color.set(wallColor(b.class, city.biome.id)).multiplyScalar(event.damage === DamageState.Vaporized ? 0.55 : 0.82 + fragment * 0.025)
+        mesh.setColorAt(index, color)
+      }
+      wrote = true
+      if (k >= 1 || (k === 0 && range + 90 < shock)) done.current[buildingIndex] = 1
+    })
+    if (wrote) {
+      mesh.instanceMatrix.needsUpdate = true
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+    }
+  })
+
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, count]} receiveShadow>
+      <dodecahedronGeometry args={[0.72, 0]} />
+      <meshStandardMaterial color="#ffffff" roughness={0.96} metalness={0.02} emissive="#292724" emissiveIntensity={0.18} />
+    </instancedMesh>
+  )
+}
+
 function PodiumLayer({ list }: { list: Building[] }) {
   const ref = useRef<THREE.InstancedMesh>(null)
   const cls = list[0]?.class ?? BuildingClass.Masonry
@@ -213,7 +310,7 @@ function PodiumLayer({ list }: { list: Building[] }) {
   const fieldSig = useSim((s) => s.runRevision)
   const atlas = useMemo(() => buildingAtlas(cls, city.biome.id), [cls, city.biome.id])
   const mat = useMemo(
-    () => makeFacadeMaterial({ metalness: 0.12, roughness: 0.88, map: atlas?.facade ?? null }),
+    () => makeFacadeMaterial({ metalness: 0.12, roughness: 0.88, map: atlas?.facade ?? null, normalMap: atlas?.facadeNormal ?? null, armMap: atlas?.facadeArm ?? null }),
     [atlas],
   )
   const base = useMemo(() => new THREE.Color(wallColor(cls, city.biome.id)).multiplyScalar(0.85), [cls, city.biome.id])
@@ -259,7 +356,10 @@ function PodiumLayer({ list }: { list: Building[] }) {
       const pose = damagePose(b, damage, k)
       tmp.position.set(b.x, y0 + (b.podiumH * pose.scaleY) / 2 - pose.sunk * 0.4, b.z)
       tmp.rotation.set(pose.tiltX * 0.4, b.yaw, pose.tiltZ * 0.4)
-      tmp.scale.set(b.w * pose.scaleX, b.podiumH * Math.max(0.12, pose.scaleY), b.d * pose.scaleZ)
+      // A collapsed podium must leave the scene with its tower. Keeping a
+      // minimum Y scale produced enormous, paper-thin black slabs at ground
+      // zero and read as a rendering failure instead of structural debris.
+      tmp.scale.set(b.w * pose.scaleX, b.podiumH * pose.scaleY, b.d * pose.scaleZ)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
       wrote = true
@@ -284,7 +384,7 @@ function RoofLayer({ list }: { list: Building[] }) {
   const city = useSim((s) => s.city)
   const cls = list[0]?.class ?? BuildingClass.Masonry
   const atlas = useMemo(() => buildingAtlas(cls, city.biome.id), [cls, city.biome.id])
-  const roofColor = useMemo(() => new THREE.Color(CLASS_COLOR[cls] ?? '#666').multiplyScalar(0.42), [cls])
+  const roofColor = useMemo(() => new THREE.Color(CLASS_COLOR[cls] ?? '#888').multiplyScalar(0.68), [cls])
   const last = useRef(new Float32Array(list.length))
   const done = useRef(new Uint8Array(list.length))
   const fieldSig = useSim((s) => s.runRevision)
@@ -319,7 +419,7 @@ function RoofLayer({ list }: { list: Building[] }) {
         if (gables.current) {
           tmp.position.set(b.x, y0 + b.h * pose.scaleY + 1.6 - pose.sunk, b.z)
           tmp.rotation.set(pose.tiltX, b.yaw + Math.PI / 4, pose.tiltZ)
-          tmp.scale.set(hide ? 0 : tw * 0.74, hide ? 0 : 3.6 * pose.scaleY, hide ? 0 : td * 0.74)
+          tmp.scale.set(hide ? 0.001 : tw * 0.74, hide ? 0.001 : 3.6 * pose.scaleY, hide ? 0.001 : td * 0.74)
           tmp.updateMatrix()
           gables.current.setMatrixAt(i, tmp.matrix)
         }
@@ -330,7 +430,7 @@ function RoofLayer({ list }: { list: Building[] }) {
       if (roofs.current) {
         tmp.position.set(b.x, y0 + b.h * pose.scaleY + 1.05 - pose.sunk, b.z)
         tmp.rotation.set(pose.tiltX, b.yaw, pose.tiltZ)
-        tmp.scale.set(hide ? 0 : tw * pose.scaleX * 0.96, hide ? 0 : 1.8 * pose.scaleY, hide ? 0 : td * pose.scaleZ * 0.96)
+        tmp.scale.set(hide ? 0.001 : tw * pose.scaleX * 0.96, hide ? 0.001 : 1.8 * pose.scaleY, hide ? 0.001 : td * pose.scaleZ * 0.96)
         tmp.updateMatrix()
         roofs.current.setMatrixAt(i, tmp.matrix)
       }
@@ -368,7 +468,7 @@ function RoofLayer({ list }: { list: Building[] }) {
     <>
       <instancedMesh ref={roofs} args={[undefined, undefined, list.length]} castShadow receiveShadow>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial map={atlas?.roof ?? null} color={roofColor} roughness={0.92} metalness={0.06} />
+        <meshStandardMaterial map={atlas?.roof ?? null} normalMap={atlas?.roofNormal ?? null} aoMap={atlas?.roofArm ?? null} roughnessMap={atlas?.roofArm ?? null} metalnessMap={atlas?.roofArm ?? null} color={roofColor} roughness={0.92} metalness={0.06} emissive="#313234" emissiveIntensity={0.24} />
       </instancedMesh>
       <instancedMesh ref={equipment} args={[undefined, undefined, list.length]} castShadow>
         <boxGeometry args={[1, 1, 1]} />

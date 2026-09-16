@@ -54,7 +54,7 @@ export const LESSONS: Lesson[] = [
     setup: { cityId: 'harbor', munitionId: 'gravity-b61', yieldKt: 1, hobMode: 'optimize-5psi' },
     compare: { yieldKt: 1000 },
     beats: [
-      'Run 1 kt, then 10, 100, and 1,000 kt on Port Meridian.',
+      'Run 1 kt, then compare it directly with 1,000 kt on Port Meridian.',
       'The 5 psi ring grows by about 2.15× each time yield jumps 10×.',
       'Area — people affected — grows faster (W^{2/3}), which is still not linear in yield.',
     ],

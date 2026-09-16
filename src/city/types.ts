@@ -10,7 +10,18 @@ export const District = {
 } as const
 export type District = (typeof District)[keyof typeof District]
 
-export type BuildingVariant = 'house' | 'walkup' | 'tower' | 'slab' | 'shed' | 'bunker'
+export type BuildingVariant =
+  | 'house'
+  | 'rowhouse'
+  | 'walkup'
+  | 'courtyard'
+  | 'tower'
+  | 'stepped'
+  | 'slab'
+  | 'shed'
+  | 'warehouse'
+  | 'bunker'
+  | 'civic'
 
 export type Building = {
   x: number

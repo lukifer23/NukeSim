@@ -6,14 +6,15 @@ import { fireballRadiusAtTimeM } from '../../sim'
 import { makeFireballMaterial } from '../shaders/fireballMat'
 import { fireballPulse } from './pulse'
 import { getRenderTime } from '../runtimeClock'
+import { fireballCore } from './fireballCore'
 const inv = new THREE.Matrix4()
 
 export function Fireball() {
   const mesh = useRef<THREE.Mesh>(null)
-  const core = useRef<THREE.Mesh>(null)
   const mat = useMemo(() => makeFireballMaterial(), [])
   const offset = useSim((s) => s.impactOffset)
   const reduced = useSim((s) => s.reducedMotion)
+  const quality = useSim((s) => s.renderQuality)
 
   useFrame(() => {
     const s = useSim.getState()
@@ -32,19 +33,17 @@ export function Fireball() {
       inv.copy(mesh.current.matrixWorld).invert()
       mat.uniforms.uInvModel.value.copy(inv)
     }
-    if (core.current) {
-      const cr = r * (0.28 + pulse * 0.1)
-      core.current.scale.set(cr, cr * flatten, cr)
-      core.current.position.set(offset.x, y, offset.z)
-      core.current.visible = !reduced && t < 2.2 && cool < 0.5
-      const cm = core.current.material as THREE.MeshBasicMaterial
-      cm.opacity = (1 - cool) * 0.35
-    }
+    const cr = r * (0.46 + pulse * 0.1)
+    fireballCore.scale.set(cr, cr * flatten, cr)
+    fireballCore.position.set(offset.x, y, offset.z)
+    fireballCore.visible = !reduced && t < 8 && cool < 0.75
+    ;(fireballCore.material as THREE.MeshBasicMaterial).opacity = fireballCore.visible ? (1 - cool) * 0.68 : 0
     mat.uniforms.uTime.value = t
     mat.uniforms.uPulse.value = pulse
     mat.uniforms.uCool.value = cool
     mat.uniforms.uSurface.value = surface ? 1 : 0
     mat.uniforms.uRadius.value = r
+    mat.uniforms.uSteps.value = quality === 'high' ? 36 : quality === 'balanced' ? 28 : 18
   })
 
   return (
@@ -52,10 +51,7 @@ export function Fireball() {
       <mesh ref={mesh} material={mat}>
         <sphereGeometry args={[1, 48, 36]} />
       </mesh>
-      <mesh ref={core}>
-        <sphereGeometry args={[1, 24, 16]} />
-        <meshBasicMaterial color="#fff6e8" transparent opacity={0.8} depthWrite={false} toneMapped={false} />
-      </mesh>
+      <primitive object={fireballCore} />
     </group>
   )
 }

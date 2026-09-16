@@ -6,7 +6,7 @@ import { damageFromOverpressure, fireballMaxRadiusM, overpressureAtRangePsi, sho
 import { DamageState } from '../../sim/types'
 import { getRenderTime } from '../runtimeClock'
 
-const COUNT = 180
+const COUNT = 120
 
 export function Debris() {
   const city = useSim((s) => s.city)
@@ -26,7 +26,7 @@ export function Debris() {
         cls: b.class,
         lift: 9 + (i % 17) * 3.4,
         spin: 0.28 + (i % 9) * 0.11,
-        size: Math.min(b.w, b.d) * 0.16 + 1.6,
+        size: Math.min(b.w, b.d) * 0.045 + 0.7,
         yaw: (i * 1.7) % 6,
         kind: i % 3,
       }))
@@ -68,7 +68,7 @@ export function Debris() {
       } else {
         dummy.position.set(p.x + Math.sin(p.yaw) * 3, p.ground, p.z + Math.cos(p.yaw) * 3)
         dummy.rotation.set(0.4, p.yaw, 0.2)
-        dummy.scale.set(p.size * 1.4, p.size * 0.45, p.size * 1.1)
+        dummy.scale.set(p.size * 1.05, p.size * 0.72, p.size * 0.92)
         dummy.updateMatrix()
         if (p.kind === 0) pileA.setMatrixAt(pileAN++, dummy.matrix)
         else pileB.setMatrixAt(pileBN++, dummy.matrix)
@@ -86,15 +86,15 @@ export function Debris() {
     <>
       <instancedMesh ref={flying} args={[undefined, undefined, COUNT]} frustumCulled={false}>
         <dodecahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial color="#2a211b" roughness={0.96} />
+        <meshStandardMaterial color="#65584d" roughness={0.96} emissive="#292521" emissiveIntensity={0.15} />
       </instancedMesh>
       <instancedMesh ref={rubbleA} args={[undefined, undefined, COUNT]} frustumCulled={false}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#2c241c" roughness={0.98} />
+        <meshStandardMaterial color="#74675b" roughness={0.98} emissive="#292521" emissiveIntensity={0.15} />
       </instancedMesh>
       <instancedMesh ref={rubbleB} args={[undefined, undefined, COUNT]} frustumCulled={false}>
-        <tetrahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial color="#3a2c22" roughness={0.95} />
+        <dodecahedronGeometry args={[0.8, 0]} />
+        <meshStandardMaterial color="#7c6d60" roughness={0.95} emissive="#2d2925" emissiveIntensity={0.15} />
       </instancedMesh>
     </>
   )

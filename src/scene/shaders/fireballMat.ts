@@ -7,6 +7,7 @@ export const fireballUniforms = {
   uSurface: { value: 0 },
   uCool: { value: 0 },
   uInvModel: { value: new THREE.Matrix4() },
+  uSteps: { value: 28 },
 }
 
 export function makeFireballMaterial(): THREE.ShaderMaterial {
@@ -34,6 +35,7 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
       uniform float uSurface;
       uniform float uRadius;
       uniform mat4 uInvModel;
+      uniform float uSteps;
       varying vec3 vWorld;
       varying vec3 vObj;
 
@@ -65,12 +67,12 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
       }
 
       vec3 blackbody(float cool, float pulse){
-        vec3 hot = vec3(1.6, 1.45, 1.35);
-        vec3 mid = vec3(1.35, 0.55, 0.16);
+        vec3 hot = vec3(2.15, 1.72, 1.22);
+        vec3 mid = vec3(1.42, 0.48, 0.10);
         vec3 soot = vec3(0.16, 0.07, 0.03);
         vec3 col = mix(hot, mid, smoothstep(0.08, 0.55, cool));
         col = mix(col, soot, smoothstep(0.48, 1.0, cool));
-        return col * (1.0 + pulse * 1.4);
+        return col * (0.88 + pulse * 0.55);
       }
 
       void main(){
@@ -87,10 +89,11 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
 
         vec3 col = vec3(0.0);
         float alpha = 0.0;
-        float steps = 28.0;
-        float dt = (t1 - t0) / steps;
-        for (int i = 0; i < 28; i++) {
-          vec3 p = ro + rd * (t0 + (float(i) + 0.5) * dt);
+        float dt = (t1 - t0) / uSteps;
+        float jitter = hash(vec3(gl_FragCoord.xy, fract(uTime))) - 0.5;
+        for (int i = 0; i < 36; i++) {
+          if (float(i) >= uSteps) break;
+          vec3 p = ro + rd * (t0 + (float(i) + 0.5 + jitter * 0.55) * dt);
           if (uSurface > 0.5 && p.y < -0.02) continue;
           float rad = length(p);
           float boil = fbm(p * 3.4 + vec3(0.0, uTime * 0.55, uTime * 0.22));
@@ -100,12 +103,13 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
           dens *= 1.0 - uCool * 0.55;
           vec3 emit = blackbody(uCool, uPulse);
           emit = mix(emit, vec3(0.9, 0.25, 0.04), shell * (1.0 - uCool));
-          col += emit * dens * dt * 2.8;
-          alpha += dens * dt * 2.2;
+          float a = 1.0 - exp(-dens * dt * 2.35);
+          col += emit * a * (1.0 - alpha);
+          alpha += a * (1.0 - alpha);
+          if (alpha > 0.97) break;
         }
-        alpha = clamp(alpha, 0.0, 0.96);
-        col = 1.0 - exp(-col);
-        gl_FragColor = vec4(col, alpha);
+        col = 1.0 - exp(-col * 0.82);
+        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.96));
       }
     `,
   })

@@ -1,7 +1,7 @@
 import { useSim } from '../state/store'
 import { Fireball } from './fx/Fireball'
-import { Shock } from './fx/Shock'
 import { Mushroom } from './fx/Mushroom'
+import { Shock } from './fx/Shock'
 import { Flash } from './fx/Flash'
 import { Fires } from './fx/Fires'
 import { Debris } from './fx/Debris'

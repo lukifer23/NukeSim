@@ -7,6 +7,11 @@ const STYLE: Record<string, number> = {
   slab: 3,
   shed: 4,
   bunker: 5,
+  rowhouse: 6,
+  courtyard: 7,
+  stepped: 8,
+  warehouse: 9,
+  civic: 10,
 }
 
 export function styleId(variant: string): number {
@@ -17,12 +22,20 @@ export function makeFacadeMaterial(opts: {
   metalness: number
   roughness: number
   map?: THREE.Texture | null
+  normalMap?: THREE.Texture | null
+  armMap?: THREE.Texture | null
 }): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({
     roughness: opts.roughness,
     metalness: opts.metalness,
     vertexColors: true,
     map: opts.map ?? null,
+    normalMap: opts.normalMap ?? null,
+    aoMap: opts.armMap ?? null,
+    roughnessMap: opts.armMap ?? null,
+    metalnessMap: opts.armMap ?? null,
+    emissive: '#45484a',
+    emissiveIntensity: 0.48,
   })
   const extras = { uDay: { value: 0.7 } }
   mat.userData.uDay = extras.uDay
@@ -66,26 +79,26 @@ export function makeFacadeMaterial(opts: {
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-        float floors = max(2.0, vFloors * 0.42);
-        float cols = max(2.0, vCols * 0.38);
+        float floors = max(2.0, vFloors * 0.19);
+        float cols = max(2.0, vCols * 0.20);
         float house = step(vStyle, 0.5);
-        float bunker = step(4.5, vStyle);
-        float shed = step(3.5, vStyle) * (1.0 - bunker);
+        float bunker = 1.0 - step(0.5, abs(vStyle - 5.0));
+        float shed = max(1.0 - step(0.5, abs(vStyle - 4.0)), 1.0 - step(0.5, abs(vStyle - 9.0)));
         if (house > 0.5) { floors = min(floors, 2.0); cols = min(cols, 3.0); }
         if (bunker > 0.5) { floors = max(2.0, floors * 0.5); cols = 2.0; }
         if (shed > 0.5) { floors = 2.0; cols = max(3.0, cols); }
         vec2 grid = vec2(vFuv.x * cols, vFuv.y * floors);
         vec2 cell = fract(grid);
         vec2 id = floor(grid);
-        float insetX = mix(0.28, 0.38, house + bunker * 0.3);
-        float insetY = mix(0.3, 0.4, house);
+        float insetX = mix(0.34, 0.40, house + bunker * 0.3);
+        float insetY = mix(0.34, 0.42, house);
         float win = step(insetX, cell.x) * step(cell.x, 1.0 - insetX) * step(insetY, cell.y) * step(cell.y, 1.0 - insetY);
         float floorBand = step(cell.y, 0.12);
         float night = 1.0 - smoothstep(0.28, 0.48, uDay);
         float lit = step(0.82, hash(id + vSeed)) * night;
         vec3 wall = diffuseColor.rgb;
         vec3 band = wall * 0.88;
-        vec3 glassDay = vec3(0.2, 0.23, 0.26);
+        vec3 glassDay = vec3(0.08, 0.12, 0.15);
         vec3 glassNight = vec3(0.62, 0.48, 0.24);
         vec3 glass = mix(glassDay, glassNight, lit);
         diffuseColor.rgb = mix(mix(wall, band, floorBand), glass, win);

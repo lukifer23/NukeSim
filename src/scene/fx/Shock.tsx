@@ -30,7 +30,7 @@ export function Shock() {
     const hob = s.hobResolved()
     const t = getRenderTime()
     const r = Math.max(shockRadiusAtTimeM(s.yieldKt, hob, t), 8)
-    const fade = t < 0.04 ? 0 : Math.max(0.03, 0.55 * Math.exp(-t / 26))
+    const fade = t < 0.04 ? 0 : Math.max(0.015, 0.22 * Math.exp(-t / 20))
     if (Math.abs(r - lastR.current) > 6) {
       updateDrapedRing(ringGeo, r, Math.max(16, r * 0.012), city.heightAt, offset.x, offset.z, 2.6)
       updateDrapedRing(dustGeo, r, Math.max(40, r * 0.04), city.heightAt, offset.x, offset.z, 1.8)

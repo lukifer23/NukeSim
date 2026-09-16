@@ -1,9 +1,17 @@
 import * as THREE from 'three'
 import { BuildingClass } from '../sim/types'
 
-type Atlas = { facade: THREE.CanvasTexture; roof: THREE.CanvasTexture }
+type Atlas = {
+  facade: THREE.Texture
+  facadeNormal: THREE.Texture | null
+  facadeArm: THREE.Texture | null
+  roof: THREE.Texture
+  roofNormal: THREE.Texture | null
+  roofArm: THREE.Texture | null
+}
 
 const cache = new Map<string, Atlas>()
+const pbrCache = new Map<string, ReturnType<typeof makePbrSet>>()
 
 function paintFacade(cls: string, biome: string): HTMLCanvasElement {
   const c = document.createElement('canvas')
@@ -45,38 +53,6 @@ function paintFacade(cls: string, biome: string): HTMLCanvasElement {
   return c
 }
 
-function paintRoof(cls: string): HTMLCanvasElement {
-  const c = document.createElement('canvas')
-  c.width = 256
-  c.height = 256
-  const g = c.getContext('2d')!
-  if (cls === BuildingClass.Wood) {
-    g.fillStyle = '#4a3024'
-    g.fillRect(0, 0, 256, 256)
-    for (let y = 0; y < 256; y += 7) {
-      g.fillStyle = y % 14 === 0 ? '#3a241c' : '#5a3a2a'
-      g.fillRect(0, y, 256, 3)
-    }
-  } else if (cls === BuildingClass.Steel) {
-    g.fillStyle = '#3a4044'
-    g.fillRect(0, 0, 256, 256)
-    for (let x = 0; x < 256; x += 18) {
-      g.fillStyle = '#2e3438'
-      g.fillRect(x, 0, 1, 256)
-    }
-  } else {
-    g.fillStyle = '#3a3834'
-    g.fillRect(0, 0, 256, 256)
-    for (let i = 0; i < 900; i++) {
-      const x = (i * 73) % 256
-      const y = (i * 41) % 256
-      g.fillStyle = i % 3 === 0 ? '#2e2c28' : '#44423c'
-      g.fillRect(x, y, 3, 3)
-    }
-  }
-  return c
-}
-
 function tex(c: HTMLCanvasElement): THREE.CanvasTexture {
   const t = new THREE.CanvasTexture(c)
   t.wrapS = THREE.RepeatWrapping
@@ -87,14 +63,52 @@ function tex(c: HTMLCanvasElement): THREE.CanvasTexture {
   return t
 }
 
+function loadTexture(file: string, srgb: boolean, repeatX: number, repeatY: number): THREE.Texture {
+  const texture = new THREE.TextureLoader().load(`/assets/materials/${file}`)
+  texture.wrapS = THREE.RepeatWrapping
+  texture.wrapT = THREE.RepeatWrapping
+  texture.repeat.set(repeatX, repeatY)
+  texture.anisotropy = 8
+  if (srgb) texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
+function makePbrSet(prefix: 'concrete' | 'brick-wall' | 'concrete-floor', x: number, y: number) {
+  return {
+    diffuse: loadTexture(`${prefix}-diffuse.jpg`, true, x, y),
+    normal: loadTexture(`${prefix}-normal.jpg`, false, x, y),
+    arm: loadTexture(`${prefix}-arm.jpg`, false, x, y),
+  }
+}
+
+function pbrSet(prefix: 'concrete' | 'brick-wall' | 'concrete-floor', x: number, y: number) {
+  const key = `${prefix}:${x}:${y}`
+  const hit = pbrCache.get(key)
+  if (hit) return hit
+  const made = makePbrSet(prefix, x, y)
+  pbrCache.set(key, made)
+  return made
+}
+
 export function buildingAtlas(cls: string, biomeId: string): Atlas | null {
   if (typeof document === 'undefined') return null
   const key = `${cls}:${biomeId}`
   const hit = cache.get(key)
   if (hit) return hit
-  const made = { facade: tex(paintFacade(cls, biomeId)), roof: tex(paintRoof(cls)) }
+  const facadePbr = cls === BuildingClass.Masonry
+    ? pbrSet('brick-wall', 2, 4)
+    : cls === BuildingClass.Concrete || cls === BuildingClass.Heavy
+      ? pbrSet('concrete', 2, 4)
+      : null
+  const roofPbr = pbrSet('concrete-floor', 2, 2)
+  const made: Atlas = {
+    facade: facadePbr?.diffuse ?? tex(paintFacade(cls, biomeId)),
+    facadeNormal: facadePbr?.normal ?? null,
+    facadeArm: facadePbr?.arm ?? null,
+    roof: roofPbr.diffuse,
+    roofNormal: roofPbr.normal,
+    roofArm: roofPbr.arm,
+  }
   cache.set(key, made)
   return made
 }
-
-

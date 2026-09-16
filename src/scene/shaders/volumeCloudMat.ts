@@ -10,6 +10,7 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
       uSurface: { value: 0 },
       uSun: { value: new THREE.Vector3(0.3, 0.9, 0.2) },
       uInvModel: { value: new THREE.Matrix4() },
+      uSteps: { value: 28 },
     },
     transparent: true,
     depthWrite: false,
@@ -33,6 +34,7 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
       uniform float uSurface;
       uniform vec3 uSun;
       uniform mat4 uInvModel;
+      uniform float uSteps;
       varying vec3 vObj;
       varying vec3 vWorld;
 
@@ -68,16 +70,27 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
         float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
         return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
       }
+      float sdTorus(vec3 p, vec2 t){
+        vec2 q = vec2(length(p.xz) - t.x, p.y);
+        return length(q) - t.y;
+      }
 
       float cloudSdf(vec3 p){
         vec3 q = p;
         q.xz -= uWind * q.y * 0.12;
-        float cap = sdEllipsoid(q - vec3(0.0, 0.42, 0.0), vec3(0.86, 0.09 + 0.03 * uGrow, 0.86));
-        float ice = sdEllipsoid(q - vec3(0.0, 0.50, 0.0), vec3(0.52, 0.045, 0.52));
-        float stem = sdCappedCone(q - vec3(0.0, -0.06, 0.0), 0.46, mix(0.07, 0.20, uSurface), 0.045);
-        float surge = uSurface > 0.5 ? sdCappedCone(q - vec3(0.0, -0.42, 0.0), 0.16, 0.48, 0.18) : 1.0;
+        vec3 capP = q - vec3(0.0, 0.36, 0.0);
+        float ring = sdTorus(capP, vec2(0.52, 0.15 + 0.02 * uGrow));
+        float crown = sdEllipsoid(capP - vec3(0.0, 0.035, 0.0), vec3(0.82, 0.17, 0.82));
+        float lobeA = sdEllipsoid(capP - vec3(0.43, 0.015, 0.10), vec3(0.40, 0.15, 0.36));
+        float lobeB = sdEllipsoid(capP - vec3(-0.38, 0.025, -0.22), vec3(0.43, 0.16, 0.38));
+        float cap = min(min(ring, crown), min(lobeA, lobeB));
+        float ice = sdEllipsoid(q - vec3(0.0, 0.43, 0.0), vec3(0.62, 0.08, 0.62));
+        float stem = sdCappedCone(q - vec3(0.0, -0.08, 0.0), 0.48, mix(0.10, 0.24, uSurface), 0.105);
+        float collar = sdTorus(q - vec3(0.0, 0.08, 0.0), vec2(0.21, 0.07));
+        float surge = uSurface > 0.5 ? sdEllipsoid(q - vec3(0.0, -0.52, 0.0), vec3(0.64, 0.035, 0.64)) : 1.0;
         float d = min(cap, ice);
         d = min(d, stem);
+        d = min(d, collar);
         d = min(d, surge);
         return d;
       }
@@ -94,23 +107,30 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
         float tEnter = max(max(tsm.x, tsm.y), tsm.z);
         float tExit = min(min(tsx.x, tsx.y), tsx.z);
         if (tExit < max(tEnter, 0.0)) discard;
-        float t = max(tEnter, 0.0) + 0.01;
+        float t = max(tEnter, 0.0) + 0.01 + (hash(vec3(gl_FragCoord.xy, fract(uTime))) - 0.5) * 0.025;
         float T = 1.0;
         vec3 col = vec3(0.0);
         vec3 sun = normalize(uSun);
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 36; i++) {
+          if (float(i) >= uSteps) break;
           vec3 p = ro + rd * t;
           if (t > tExit || abs(p.x) > 1.2 || abs(p.y) > 1.2 || abs(p.z) > 1.2) break;
           float d = cloudSdf(p);
           float boil = fbm(p * 2.8 + vec3(uTime * 0.07, uTime * 0.04, 0.0));
-          float dens = smoothstep(0.10, -0.05, d + (boil - 0.45) * 0.10);
+          float dens = 1.0 - smoothstep(-0.05, 0.10, d + (boil - 0.45) * 0.10);
           dens *= 0.62 + 0.38 * boil;
-          float shadow = 1.0 - dens * 0.5;
-          vec3 ash = vec3(0.22, 0.20, 0.18);
-          vec3 lit = vec3(0.40, 0.38, 0.35);
-          vec3 ice = vec3(0.50, 0.54, 0.58);
-          float iceMix = smoothstep(0.30, 0.52, p.y) * 0.42;
-          vec3 albedo = mix(mix(ash, lit, shadow * max(0.0, dot(vec3(0.0,1.0,0.0), sun))), ice, iceMix);
+          float lightDens = 0.0;
+          for (int j = 1; j <= 3; j++) {
+            vec3 sp = p + sun * float(j) * 0.075;
+            float sd = cloudSdf(sp);
+            lightDens += (1.0 - smoothstep(-0.04, 0.08, sd)) * 0.23;
+          }
+          float shadow = exp(-lightDens * 1.8);
+          vec3 ash = vec3(0.24, 0.23, 0.22);
+          vec3 lit = vec3(0.60, 0.57, 0.52);
+          vec3 ice = vec3(0.68, 0.71, 0.73);
+          float iceMix = smoothstep(0.33, 0.57, p.y) * 0.34;
+          vec3 albedo = mix(mix(ash, lit, shadow), ice, iceMix);
           col += albedo * dens * T * 0.30;
           T *= exp(-dens * 0.40);
           if (T < 0.02) break;

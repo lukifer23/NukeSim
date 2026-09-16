@@ -20,9 +20,8 @@ export function Atmosphere() {
 
   useLayoutEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping
-    gl.toneMappingExposure = look.exposure
     gl.shadowMap.enabled = true
-    gl.shadowMap.type = THREE.PCFSoftShadowMap
+    gl.shadowMap.type = THREE.PCFShadowMap
     camera.far = 60000
     camera.updateProjectionMatrix()
     if (sky.current) sky.current.material.fog = false

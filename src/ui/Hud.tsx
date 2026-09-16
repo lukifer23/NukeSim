@@ -16,8 +16,10 @@ import { ModelDrawer } from './ModelDrawer'
 import { FieldLegend } from './FieldLegend'
 import { Debrief } from './Debrief'
 import type { Workspace } from '../state/store'
+import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Search, Telescope } from 'lucide-react'
+import type { CameraMode } from '../state/store'
 
-type FieldPanel = 'scenario' | 'experience' | 'inspector' | null
+type FieldPanel = 'setup' | 'experience' | 'inspector' | null
 
 export function Hud() {
   const phase = useSim((s) => s.phase)
@@ -25,15 +27,13 @@ export function Hud() {
   const city = cityById(useSim((s) => s.cityId))
   const munitionId = useSim((s) => s.munitionId)
   const workspace = useSim((s) => s.workspace)
-  const setWorkspace = useSim((s) => s.setWorkspace)
   const setModelOpen = useSim((s) => s.setModelOpen)
-  const accepted = useSim((s) => s.accepted)
   const overlays = useSim((s) => s.overlays)
   const probe = useSim((s) => s.probe)
   const mission = useSim((s) => s.mission)
   const playing = useSim((s) => s.playing)
   const simTime = useSim((s) => s.simTime)
-  const [panel, setPanel] = useState<FieldPanel>('scenario')
+  const [panel, setPanel] = useState<FieldPanel>('setup')
   const blast = report.rings.find((r) => r.psi === 5)
   const fieldTag = overlays.blast && blast ? blast.confidence : report.fireballTouchesGround ? 'heuristic' : 'interpolated'
   const cinemaDone = simTime >= 28 || !playing
@@ -43,7 +43,10 @@ export function Hud() {
   const debriefing = phase === 'debrief'
 
   useEffect(() => {
-    if (phase === 'bench') setPanel(mission && (mission.step === 'predict' || mission.step.startsWith('configure')) ? 'experience' : 'scenario')
+    if (phase === 'bench') {
+      if (mission?.step === 'predict') setPanel('experience')
+      else setPanel('setup')
+    }
     else if (phase === 'detonate') setPanel(null)
     else if (phase === 'explore' && mission && mission.step.startsWith('observe-')) setPanel('experience')
     else if (phase === 'explore' || phase === 'debrief') setPanel('inspector')
@@ -52,11 +55,6 @@ export function Hud() {
   useEffect(() => {
     if (phase === 'explore' && probe) setPanel('inspector')
   }, [phase, probe])
-
-  const chooseWorkspace = (next: Workspace) => {
-    setWorkspace(next)
-    setPanel(next === 'explore' ? (inspectReady ? 'inspector' : 'scenario') : 'experience')
-  }
 
   return (
     <div className={`pointer-events-none absolute inset-0 z-10 flex flex-col ${watching ? 'watch-dim' : ''}`}>
@@ -88,8 +86,8 @@ export function Hud() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {fieldPhase && panel === 'scenario' && !watching && !debriefing && (
-          <Bench intent={workspace} onIntent={chooseWorkspace} intentEnabled={accepted} />
+        {fieldPhase && panel === 'setup' && !watching && !debriefing && (
+          <Bench />
         )}
         <div className="relative min-w-0 flex-1">
           {phase === 'title' && <Title />}
@@ -97,6 +95,7 @@ export function Hud() {
           {fieldPhase && (inspectReady || phase === 'bench') && (
             <ToolDock panel={panel} workspace={workspace} onChange={setPanel} debriefing={debriefing} />
           )}
+          {fieldPhase && inspectReady && !debriefing && <ViewDock />}
           {fieldPhase && panel === 'inspector' && inspectReady && (
             <div className="right-stack pointer-events-none absolute right-4 top-4">
               <Probe />
@@ -125,6 +124,25 @@ export function Hud() {
   )
 }
 
+function ViewDock() {
+  const mode = useSim((s) => s.cameraMode)
+  const setMode = useSim((s) => s.setCameraMode)
+  const views: Array<[CameraMode, string, typeof Telescope]> = [
+    ['field', 'Field', Telescope],
+    ['ground-zero', 'Ground zero', Building2],
+    ['cloud', 'Cloud', Cloud],
+  ]
+  return (
+    <div className="view-tools pointer-events-auto" aria-label="Camera view">
+      {views.map(([id, label, Icon]) => (
+        <button key={id} aria-pressed={mode === id} onClick={() => setMode(id)}>
+          <Icon aria-hidden="true" size={15} strokeWidth={1.8} />{label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function ToolDock({
   panel,
   workspace,
@@ -138,22 +156,23 @@ function ToolDock({
 }) {
   const toggle = (next: Exclude<FieldPanel, null>) => onChange(panel === next ? null : next)
   return (
-    <div className="hud-tools pointer-events-auto" aria-label="Field panels">
+    <div className="hud-tools pointer-events-auto" aria-label="Field workflow">
       {!debriefing && (
-        <button aria-pressed={panel === 'scenario'} onClick={() => toggle('scenario')}>
-          Scenario
+        <button aria-pressed={panel === 'setup'} onClick={() => toggle('setup')}>
+          <ClipboardList aria-hidden="true" size={15} strokeWidth={1.8} />
+          Setup
         </button>
       )}
       {!debriefing && workspace !== 'explore' && (
         <button aria-pressed={panel === 'experience'} onClick={() => toggle('experience')}>
+          {workspace === 'learn' ? <BookOpen aria-hidden="true" size={15} strokeWidth={1.8} /> : <Crosshair aria-hidden="true" size={15} strokeWidth={1.8} />}
           {workspace === 'learn' ? 'Lesson' : 'Compare'}
         </button>
       )}
       <button aria-pressed={panel === 'inspector'} onClick={() => toggle('inspector')}>
+        <Search aria-hidden="true" size={15} strokeWidth={1.8} />
         Inspect
       </button>
     </div>
   )
 }
-
-

@@ -27,13 +27,15 @@ function pickClass(u: number, mix: CityBiome['construction']): Building['class']
   return BuildingClass.Masonry
 }
 
-function pickVariant(d: District, cls: Building['class'], h: number, footprint: number, biome: CityBiome): Building['variant'] {
-  if (d === District.Industrial || (cls === BuildingClass.Steel && h < 22)) return 'shed'
-  if (cls === BuildingClass.Heavy) return 'bunker'
+function pickVariant(d: District, cls: Building['class'], h: number, footprint: number, biome: CityBiome, u: number): Building['variant'] {
+  if (d === District.Industrial || (cls === BuildingClass.Steel && h < 22)) return u > 0.46 ? 'warehouse' : 'shed'
+  if (cls === BuildingClass.Heavy) return u > 0.62 ? 'civic' : 'bunker'
   if (cls === BuildingClass.Wood && h < 20) return 'house'
-  if (biome.id === 'dune' && h < 90) return footprint > 26 ? 'slab' : 'walkup'
+  if (d === District.Residential && cls === BuildingClass.Masonry && h < 28) return u > 0.42 ? 'rowhouse' : 'walkup'
+  if (biome.id === 'dune' && h < 90) return footprint > 26 ? (u > 0.55 ? 'courtyard' : 'slab') : 'walkup'
   if (biome.id === 'atoll') return cls === BuildingClass.Wood ? 'house' : 'walkup'
-  if (h > 64) return 'tower'
+  if (h > 64) return u > 0.48 ? 'stepped' : 'tower'
+  if (cls === BuildingClass.Concrete && footprint > 24 && u > 0.7) return 'civic'
   if (footprint > 28 && h < 48) return 'slab'
   return 'walkup'
 }
@@ -177,7 +179,7 @@ export function generateCity(biome: CityBiome): GeneratedCity {
       rand() * (12 + downtown * 48 * hMul) +
       (cls === BuildingClass.Concrete ? 10 : 0)
     const h = Math.min(baseH, 230)
-    const variant = pickVariant(d, cls, h, Math.max(w, depth), biome)
+    const variant = pickVariant(d, cls, h, Math.max(w, depth), biome, rand())
     const floors = Math.max(2, Math.round(h / (variant === 'house' ? 3.4 : 3.6)))
     const yaw = d === District.Residential && rand() > 0.82 ? (rand() - 0.5) * 0.18 : 0
     const podiumH = variant === 'tower' && h > 58 ? 11 + rand() * 10 : 0

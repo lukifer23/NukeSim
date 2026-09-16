@@ -14,6 +14,7 @@ export function Mushroom() {
   const volume = useRef<THREE.Mesh>(null)
   const offset = useSim((s) => s.impactOffset)
   const mat = useMemo(() => makeVolumeCloudMaterial(), [])
+  const quality = useSim((s) => s.renderQuality)
 
   useFrame(() => {
     const s = useSim.getState()
@@ -36,14 +37,15 @@ export function Mushroom() {
     mat.uniforms.uSurface.value = surface ? 1 : 0
     mat.uniforms.uOpacity.value = 0.78 + 0.18 * grow
     mat.uniforms.uSun.value.set(look.sunPos[0], look.sunPos[1], look.sunPos[2])
+    mat.uniforms.uSteps.value = quality === 'high' ? 36 : quality === 'balanced' ? 28 : 18
     if (volume.current) {
       volume.current.visible = show
       const cap = Math.max(s.report.cloud.capDiameterM * (0.12 + 0.88 * grow), fb * 2.2)
       const height = Math.max(h, fb * 1.4)
       const baseY = hob <= 1 ? fb * 0.2 : Math.max(hob * 0.15, 20)
-      const sx = Math.max(cap * 0.72, height * 0.28)
-      const sy = height * 0.55
-      volume.current.position.set(offset.x + wx * h * 0.08, baseY + sy * 0.92, offset.z + wz * h * 0.08)
+      const sx = Math.max(cap * 0.7, height * 0.28)
+      const sy = height * 0.62
+      volume.current.position.set(offset.x + wx * h * 0.08, baseY + sy * 0.86, offset.z + wz * h * 0.08)
       volume.current.scale.set(sx, sy, sx)
       volume.current.updateWorldMatrix(true, false)
       inv.copy(volume.current.matrixWorld).invert()

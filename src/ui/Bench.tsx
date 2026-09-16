@@ -7,17 +7,9 @@ import { ScenarioShare } from './ScenarioShare'
 import { LESSONS } from '../data/lessons'
 import { missionScenarioMatches } from '../learn/mission'
 import { Chip, Label, Slider } from './controls'
-import type { Workspace } from '../state/store'
+import { ChevronDown, GitCompare, MapPin, Play, Volume2, VolumeX } from 'lucide-react'
 
-export function Bench({
-  intent,
-  onIntent,
-  intentEnabled,
-}: {
-  intent: Workspace
-  onIntent: (workspace: Workspace) => void
-  intentEnabled: boolean
-}) {
+export function Bench() {
   const s = useSim()
   const m = MUNITIONS.find((x) => x.id === s.munitionId) ?? MUNITIONS[0]
   const city = cityById(s.cityId)
@@ -34,27 +26,9 @@ export function Bench({
   return (
     <aside className="scenario-bench pointer-events-auto flex h-full w-[300px] shrink-0 flex-col border-r border-white/10 bg-panel/82 backdrop-blur-md">
       <header className="shrink-0 border-b border-white/10 px-4 py-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-signal/80">Scenario bench</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-signal/80">Setup</p>
         <h2 className="text-lg text-paper">{city.name}</h2>
-        <p className="font-mono text-[11px] text-mute">{city.climate}</p>
-        <p className="ns-label mt-3">Working as</p>
-        <div className="workspace-tabs mt-1" aria-label="What you are doing">
-          {([
-            ['learn', 'Learn'],
-            ['explore', 'Investigate'],
-            ['compare', 'Compare'],
-          ] as const).map(([id, label]) => (
-            <button
-              key={id}
-              className={intent === id ? 'active' : ''}
-              aria-pressed={intent === id}
-              disabled={!intentEnabled}
-              onClick={() => onIntent(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <p className="font-mono text-[12px] text-mute">{city.climate} · all inputs remain editable</p>
       </header>
 
       {lesson && missionConfiguring && (
@@ -65,7 +39,8 @@ export function Bench({
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-      <section className="space-y-2 px-4 py-3">
+      <section className="bench-section space-y-2 px-4 py-4">
+        <p className="bench-section-title">Essentials</p>
         <Label tip="cep">Delivery context</Label>
         <div className="flex flex-wrap gap-1">
           {MUNITIONS.filter((x) => x.kind !== 'historical').map((x) => (
@@ -82,11 +57,11 @@ export function Bench({
             </Chip>
           ))}
         </div>
-        <p className="text-[11px] leading-snug text-mute">{m.blurb}</p>
-        <p className="font-mono text-[10px] text-accent/80">{m.warningLabel} · effects begin at detonation</p>
+        <p className="text-[13px] leading-snug text-mute">{m.blurb}</p>
+        <p className="font-mono text-[11px] text-accent/80">{m.warningLabel} · effects begin at detonation</p>
       </section>
 
-      <section className={`space-y-2 border-t border-white/10 px-4 py-3 ${missionConfiguring && focusYield ? 'mission-control-focus' : ''}`}>
+      <section className={`bench-section space-y-2 border-t border-white/10 px-4 py-4 ${missionConfiguring && focusYield ? 'mission-control-focus' : ''}`}>
         <Slider
           label="Yield"
           tip="yield"
@@ -104,7 +79,7 @@ export function Bench({
             <button
               key={n.kt}
               onClick={() => s.setYield(n.kt)}
-              className="font-mono text-[9px] text-mute hover:text-signal-hot"
+              className="yield-notch font-mono text-[11px] text-mute hover:text-signal-hot"
             >
               {n.label}
             </button>
@@ -112,7 +87,7 @@ export function Bench({
         </div>
       </section>
 
-      <section className={`space-y-2 border-t border-white/10 px-4 py-3 ${missionConfiguring && focusHob ? 'mission-control-focus' : ''}`}>
+      <section className={`bench-section space-y-2 border-t border-white/10 px-4 py-4 ${missionConfiguring && focusHob ? 'mission-control-focus' : ''}`}>
         <Label tip="hob">Height of burst</Label>
         <div className="grid grid-cols-2 gap-1">
           <Chip on={s.hobMode === BurstMode.Surface} onClick={() => s.setHobMode(BurstMode.Surface)}>
@@ -142,7 +117,9 @@ export function Bench({
         />
       </section>
 
-      <section className="space-y-2 border-t border-white/10 px-4 py-3">
+      <details className="bench-advanced border-t border-white/10" open>
+        <summary><ChevronDown aria-hidden="true" size={16} /> Environment</summary>
+        <section className="space-y-3 px-4 pb-4">
         <Slider
           label="Fission fraction"
           tip="fission-fraction"
@@ -190,9 +167,9 @@ export function Bench({
           display={`${s.visibilityKm.toFixed(1)} km`}
           caption="Thermal transmittance through the air."
         />
-      </section>
+        </section>
 
-      <section className="space-y-2 border-t border-white/10 px-4 py-3">
+        <section className="space-y-3 border-t border-white/10 px-4 py-4">
         <Slider
           label="Time of day"
           ariaLabel="Time of day"
@@ -203,41 +180,50 @@ export function Bench({
           onChange={(v) => s.setTimeOfDay(v)}
           display={timeOfDayLabel(s.timeOfDay)}
         />
-        <div className="flex justify-between font-mono text-[10px] text-mute">
+        <div className="flex justify-between font-mono text-[11px] text-mute">
           <span>night</span>
           <span>dawn</span>
           <span>noon</span>
           <span>dusk</span>
         </div>
-      </section>
+        </section>
+      </details>
       </div>
       <section className="shrink-0 border-t border-white/10 px-4 py-3">
         <MiniRings />
         <div className="mt-3 flex gap-2">
           <button
-            className="flex-1 bg-signal py-2 text-sm font-medium text-ink hover:bg-signal-hot"
+            className="run-field flex flex-1 items-center justify-center gap-2 bg-signal py-3 text-sm font-semibold text-ink hover:bg-signal-hot"
             onClick={() => {
               s.startLaunch()
             }}
           >
+            <Play aria-hidden="true" size={17} fill="currentColor" />
             {missionReady ? (missionStage === 'baseline' ? 'Run baseline' : 'Run comparison') : 'Run field'}
           </button>
-          <button className="border border-white/15 px-3 py-2 text-sm text-body" onClick={() => s.setPhase('city-select')}>
-            City
+          <button className="icon-action border border-white/15 px-3 py-2 text-sm text-body" onClick={() => s.setPhase('city-select')} aria-label="Change city">
+            <MapPin aria-hidden="true" size={17} />
           </button>
           <ScenarioShare />
         </div>
         <div className="mt-2 flex gap-3 font-mono text-[10px] text-mute">
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-2">
             <input type="checkbox" checked={s.showGhost} onChange={(e) => s.setShowGhost(e.target.checked)} />
             last run
           </label>
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-2">
             <input type="checkbox" checked={s.muted} onChange={(e) => s.setMuted(e.target.checked)} />
-            mute
+            {s.muted ? <VolumeX aria-hidden="true" size={14} /> : <Volume2 aria-hidden="true" size={14} />} mute
           </label>
         </div>
-        <p className="mt-2 text-[11px] leading-snug text-mute">{m.teaching}</p>
+        <button
+          className="compare-action mt-2 flex min-h-10 w-full items-center justify-center gap-2 border border-white/15 px-3 py-2 text-[12px] text-body"
+          onClick={() => s.comparison ? s.clearComparison() : s.saveComparison()}
+        >
+          <GitCompare aria-hidden="true" size={15} />
+          {s.comparison ? 'Clear comparison baseline' : 'Save comparison baseline'}
+        </button>
+        <p className="mt-2 text-[12px] leading-snug text-mute">{m.teaching}</p>
       </section>
     </aside>
   )

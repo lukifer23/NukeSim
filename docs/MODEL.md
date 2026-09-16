@@ -12,6 +12,7 @@ Every public number in the HUD carries a `confidence` tag. If a visual change wo
 - **No precision theater.** A radius or rate communicates a relationship under stated assumptions, not a promise about a street, building, person, or operational scenario.
 - **Lessons use captured runs.** Guided observations compare immutable baseline and comparison reports captured when each declared scenario actually launches. Later control edits cannot rewrite the lesson result.
 - **Progress is local and versioned.** Completion records remain in the browser and are tied to the model version. A model update requires revisiting the mission before it receives a current badge.
+- **Camera and quality are presentation state.** Field, ground-zero, and cloud views never alter a scenario result. Adaptive renderer quality may settle before launch and then remains locked for the captured run, so a comparison cannot acquire a different visual sampling level halfway through playback.
 
 ## Confidence
 
@@ -84,6 +85,7 @@ Every public number in the HUD carries a `confidence` tag. If a visual change wo
 
 - Crater: surface / near-surface only; Sedan-class engineering fit.
 - Cloud rise: Miller / Glasstone curve fits. 1 Mt → ~20 km cap, ~80–100 m/s early rise.
+- Fireball, shock, cloud, damage, and rubble rendering are explanatory visualizations of the reported model state. Their color, exposure, geometry sampling, and camera framing are not additional physical outputs.
 
 ## Golden tests (`npm test`)
 

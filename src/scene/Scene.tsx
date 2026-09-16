@@ -1,15 +1,13 @@
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Suspense, useMemo, useRef } from 'react'
-import { EffectComposer, Bloom, Vignette, SMAA, GodRays, ChromaticAberration, HueSaturation } from '@react-three/postprocessing'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Suspense, useEffect, useMemo } from 'react'
+import { AdaptiveDpr, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
-import { BlendFunction } from 'postprocessing'
-import type { GodRaysEffect, ChromaticAberrationEffect } from 'postprocessing'
 import { World } from './World'
 import { Clock } from './Clock'
 import { useSim } from '../state/store'
-import { fireballPulse } from './fx/pulse'
 import { getRenderTime } from './runtimeClock'
-import { fireballRadiusAtTimeM } from '../sim'
+import { atmosphereLook } from './atmosphere'
+import { thermalPulseDurationS } from '../sim/fireball'
 
 export function Scene() {
   const webglAvailable = useMemo(() => canRenderWebgl(), [])
@@ -18,17 +16,38 @@ export function Scene() {
     <Canvas
       fallback={<WebglFallback />}
       aria-label="Interactive three dimensional educational city view"
-      shadows="soft"
+      shadows="percentage"
       camera={{ position: [1680, 420, -1980], fov: 46, near: 1.2, far: 60000 }}
       dpr={[1, 1.75]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
     >
       <Suspense fallback={null}>
+        <QualityController />
         <World />
         <Clock />
-        <Grade />
+        <ExposureController />
       </Suspense>
     </Canvas>
+  )
+}
+
+function QualityController() {
+  const quality = useSim((s) => s.renderQuality)
+  const setQuality = useSim((s) => s.setRenderQuality)
+  const locked = useSim((s) => s.qualityLocked)
+  const { size } = useThree()
+  useEffect(() => {
+    if (!locked) setQuality(size.width < 1000 || size.height > size.width ? 'balanced' : 'high')
+  }, [locked, setQuality, size.height, size.width])
+  return (
+    <>
+      <AdaptiveDpr pixelated={false} />
+      <PerformanceMonitor
+        flipflops={2}
+        onIncline={() => !locked && setQuality(size.width < 1000 ? 'balanced' : 'high')}
+        onDecline={() => !locked && setQuality(quality === 'high' ? 'balanced' : 'safe')}
+      />
+    </>
   )
 }
 
@@ -56,68 +75,14 @@ function WebglFallback() {
   )
 }
 
-function Grade() {
-  const reduced = useSim((s) => s.reducedMotion)
-  const t = useSim((s) => s.simTime)
-  const phase = useSim((s) => s.phase)
-  const yieldKt = useSim((s) => s.yieldKt)
-  const rays = useRef<GodRaysEffect>(null)
-  const chroma = useRef<ChromaticAberrationEffect>(null)
-  const sun = useMemo(() => {
-    const mat = new THREE.MeshBasicMaterial({
-      color: '#fff6e8',
-      transparent: true,
-      opacity: 0,
-      depthWrite: false,
-      toneMapped: false,
-    })
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), mat)
-    mesh.frustumCulled = false
-    mesh.renderOrder = 2
-    return mesh
-  }, [])
-
+function ExposureController() {
+  const { gl } = useThree()
   useFrame(() => {
     const s = useSim.getState()
     const time = getRenderTime()
-    const hob = s.hobResolved()
-    const surface = hob <= 1
-    const r = Math.max(fireballRadiusAtTimeM(s.yieldKt, time, surface), 1)
-    const { pulse, cool } = fireballPulse(time, s.yieldKt)
-    const flatten = surface ? 0.42 : 1
-    const y = surface ? r * flatten * 0.45 : Math.max(hob, r * 0.2)
-    const hot = s.phase === 'detonate' && time < 1.4
-    const shaft = !s.reducedMotion && s.phase === 'detonate' && time < 8 && cool < 0.75
-    sun.position.set(s.impactOffset.x, y, s.impactOffset.z)
-    sun.scale.setScalar(Math.max(12, r * 0.34))
-    ;(sun.material as THREE.MeshBasicMaterial).opacity = shaft ? 0.72 * (1 - cool) : 0
-    if (rays.current) {
-      rays.current.godRaysMaterial.weight = shaft ? 0.18 : 0
-      rays.current.godRaysMaterial.exposure = shaft ? 0.22 : 0
-    }
-    if (chroma.current) {
-      const c = hot && time < 0.45 ? 0.0012 + pulse * 0.0008 : 0
-      chroma.current.offset.set(c, c * 0.35)
-    }
+    const rest = atmosphereLook(s.timeOfDay, s.city.biome).exposure
+    const flash = s.phase === 'detonate' ? Math.exp(-time / Math.max(0.18, thermalPulseDurationS(s.yieldKt) * 0.12)) : 0
+    gl.toneMappingExposure = THREE.MathUtils.lerp(gl.toneMappingExposure, rest + Math.min(0.22, flash * 0.22), 0.12)
   })
-
-  if (reduced) return <primitive object={sun} />
-  const { pulse } = fireballPulse(t, yieldKt)
-  const hot = phase === 'detonate' && t < 1.4
-  const after = phase === 'detonate' || phase === 'explore' || phase === 'debrief'
-  return (
-    <>
-      <primitive object={sun} />
-      <EffectComposer multisampling={0} enableNormalPass={false}>
-        <SMAA />
-        <Bloom intensity={hot ? 0.55 + pulse * 0.18 : after && t > 8 ? 0.14 : 0.22} luminanceThreshold={hot ? 0.72 : 0.84} mipmapBlur />
-        {phase === 'detonate' && t < 8.5 && (
-          <GodRays ref={rays} sun={sun} samples={32} density={0.9} decay={0.93} weight={0} exposure={0} clampMax={1} blur />
-        )}
-        {phase === 'detonate' && t < 0.55 && <ChromaticAberration ref={chroma} offset={[0, 0]} />}
-        <HueSaturation saturation={t > 90 ? -0.12 : 0} blendFunction={BlendFunction.NORMAL} />
-        <Vignette eskil={false} offset={0.12} darkness={after && t > 8 ? 0.64 : 0.44} />
-      </EffectComposer>
-    </>
-  )
+  return null
 }

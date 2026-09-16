@@ -20,15 +20,14 @@ export function Cameras() {
   const cinema = useRef(true)
   const shockWasInside = useRef(false)
   const shakeAmp = useRef(0)
-  const lastT = useRef(0)
-  const snapCloud = useRef(false)
+  const lastMode = useRef(useSim.getState().cameraMode)
+  const changingView = useRef(false)
 
   useFrame(() => {
     const s = useSim.getState()
     const frame = CITY_CAMERA_FRAMES[s.cityId]
     if (s.phase === 'bench') {
       cinema.current = true
-      snapCloud.current = false
       shockWasInside.current = false
       shakeAmp.current = 0
     }
@@ -47,15 +46,18 @@ export function Cameras() {
     const t = getRenderTime()
     const fov = (camera as THREE.PerspectiveCamera).fov || 46
     const aspect = size.width / Math.max(size.height, 1)
-    if (Math.abs(t - lastT.current) > 8 && t >= 20) snapCloud.current = true
-    lastT.current = t
+    if (lastMode.current !== s.cameraMode) {
+      lastMode.current = s.cameraMode
+      changingView.current = true
+      cinema.current = false
+    }
 
     if (!s.playing && cinema.current && t > 0.05) cinema.current = false
     if (s.phase === 'detonate' && cinema.current && s.reducedMotion) {
       cinema.current = false
       if (controls.current) controls.current.enabled = true
     }
-    if (s.phase === 'detonate' && cinema.current && !s.reducedMotion && t < 28) {
+    if (s.phase === 'detonate' && cinema.current && s.cameraMode === 'field' && !s.reducedMotion && t < 28) {
       if (controls.current) controls.current.enabled = false
       const hob = s.hobResolved()
       const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
@@ -64,19 +66,19 @@ export function Cameras() {
       const cloud = cloudCameraFrame(cloudH, fov, aspect)
       const uFire = Math.min(1, t / 12)
       const easedFire = uFire * uFire * (3 - 2 * uFire)
-      const uCloud = t <= 12 ? 0 : Math.min(1, (t - 12) / 14)
+      const uCloud = t <= 12 ? 0 : Math.min(1, (t - 12) / 15)
       const easedCloud = uCloud * uCloud * (3 - 2 * uCloud)
       const dist = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(fire.startDistance, Math.max(fire.endDistance, shock * 1.35), easedFire),
-        cloud.endDistance,
+        Math.min(cloud.endDistance, frame.pos[0] * 1.35),
         easedCloud,
       )
       const height = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(fire.cameraHeight, fire.cameraHeight + fire.verticalSpan * 0.12, easedFire),
-        cloud.cameraHeight,
+        Math.min(cloud.cameraHeight, frame.pos[1] * 1.7),
         easedCloud,
       )
-      const lookY = THREE.MathUtils.lerp(fire.lookY, cloud.lookY, easedCloud)
+      const lookY = THREE.MathUtils.lerp(fire.lookY, Math.min(cloud.lookY, cloudH * 0.32), easedCloud)
       scratch.set(s.impactOffset.x + dist * 0.72, height, s.impactOffset.z + dist * 0.78)
       camera.position.lerp(scratch, 0.1)
       look.set(s.impactOffset.x, lookY, s.impactOffset.z)
@@ -86,18 +88,27 @@ export function Cameras() {
       return
     }
     if (cinema.current && (t >= 28 || s.phase !== 'detonate')) cinema.current = false
-    if (snapCloud.current && (s.phase === 'detonate' || s.phase === 'explore' || s.phase === 'debrief') && !s.reducedMotion) {
+    if (changingView.current && (s.phase === 'detonate' || s.phase === 'explore' || s.phase === 'debrief')) {
       if (controls.current) controls.current.enabled = false
-      const cloudH = cloudHeightAtTimeM(s.report.cloud, t)
-      const cloud = cloudCameraFrame(cloudH, fov, aspect)
-      scratch.set(s.impactOffset.x + cloud.endDistance * 0.72, cloud.cameraHeight, s.impactOffset.z + cloud.endDistance * 0.78)
-      look.set(s.impactOffset.x, cloud.lookY, s.impactOffset.z)
-      const far = camera.position.distanceTo(scratch) > 600
-      if (far) camera.position.copy(scratch)
+      if (s.cameraMode === 'cloud') {
+        const cloudH = cloudHeightAtTimeM(s.report.cloud, t)
+        const cloud = cloudCameraFrame(cloudH, fov, aspect)
+        const dist = Math.min(cloud.endDistance * 1.6, 32000)
+        scratch.set(s.impactOffset.x + dist * 0.72, Math.max(420, cloudH * 0.38), s.impactOffset.z + dist * 0.78)
+        look.set(s.impactOffset.x, cloudH * 0.42, s.impactOffset.z)
+      } else if (s.cameraMode === 'ground-zero') {
+        const r = Math.max(s.report.fireballMaxRadiusM * 2.8, 480)
+        scratch.set(s.impactOffset.x + r * 0.72, Math.max(120, r * 0.22), s.impactOffset.z + r * 0.78)
+        look.set(s.impactOffset.x, Math.max(30, s.report.fireballMaxRadiusM * 0.18), s.impactOffset.z)
+      } else {
+        scratch.set(frame.pos[0], frame.pos[1], frame.pos[2])
+        look.set(frame.target[0], frame.target[1], frame.target[2])
+      }
+      if (s.reducedMotion) camera.position.copy(scratch)
       else camera.position.lerp(scratch, 0.14)
       camera.lookAt(look)
       if (controls.current) controls.current.target.copy(look)
-      if (far || camera.position.distanceTo(scratch) < 40) snapCloud.current = false
+      if (s.reducedMotion || camera.position.distanceTo(scratch) < 40) changingView.current = false
       return
     }
     if (s.phase === 'detonate' && !s.reducedMotion) {

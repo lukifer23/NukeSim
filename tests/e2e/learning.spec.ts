@@ -48,7 +48,7 @@ test('header is docs-only; debrief keeps timeline and inspect on the field', asy
   await expect(header.getByRole('link', { name: 'Academy' })).toBeVisible()
   await expect(header.getByRole('button', { name: 'Investigate' })).toHaveCount(0)
   await expect(header.getByRole('button', { name: 'Learn' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Investigate' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Setup', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Run field' }).click({ force: true })
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
   await page.getByRole('button', { name: 'Pause' }).click({ force: true })

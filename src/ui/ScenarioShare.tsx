@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { encodeScenario } from '../sim/scenario'
 import { useSim } from '../state/store'
+import { Share2 } from 'lucide-react'
 
 export function ScenarioShare() {
   const s = useSim()
@@ -24,7 +25,8 @@ export function ScenarioShare() {
     }
   }
   return (
-    <button className="border border-white/15 px-3 py-2 text-sm text-body" onClick={share}>
+    <button className="icon-action flex items-center gap-2 border border-white/15 px-3 py-2 text-sm text-body" onClick={share}>
+      <Share2 aria-hidden="true" size={16} />
       {copied ? 'Copied' : 'Share'}
     </button>
   )

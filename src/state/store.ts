@@ -39,6 +39,8 @@ export type Phase = 'title' | 'city-select' | 'bench' | 'detonate' | 'explore' |
 
 export type OverlayKey = 'blast' | 'thermal' | 'radiation' | 'fallout' | 'fireball'
 export type Workspace = 'learn' | 'explore' | 'compare'
+export type CameraMode = 'field' | 'ground-zero' | 'cloud'
+export type RenderQuality = 'high' | 'balanced' | 'safe'
 
 export type LastRunGhost = {
   rings: EffectsReport['rings']
@@ -57,6 +59,9 @@ export type ScenarioSnapshot = {
 type SimState = {
   accepted: boolean
   workspace: Workspace
+  cameraMode: CameraMode
+  renderQuality: RenderQuality
+  qualityLocked: boolean
   phase: Phase
   cityId: CityId
   city: GeneratedCity
@@ -93,6 +98,8 @@ type SimState = {
   report: EffectsReport
   accept: () => void
   setWorkspace: (workspace: Workspace) => void
+  setCameraMode: (mode: CameraMode) => void
+  setRenderQuality: (quality: RenderQuality) => void
   setPhase: (p: Phase) => void
   setCity: (id: CityId) => void
   setMunition: (id: string) => void
@@ -164,6 +171,7 @@ function updatePhysicalScenario(
         : before.ghost,
     comparison: options.cityChanged ? null : before.comparison,
     runRevision: invalidatesRun ? before.runRevision + 1 : before.runRevision,
+    qualityLocked: false,
   })
   set({ report: computeEffects(inputFrom(get())) })
 }
@@ -207,6 +215,9 @@ const initialSlice = {
 export const useSim = create<SimState>((set, get) => ({
   accepted: false,
   workspace: 'explore',
+  cameraMode: 'field',
+  renderQuality: 'high',
+  qualityLocked: false,
   phase: 'title',
   cityId: CITIES[0].id,
   city: initialCity,
@@ -240,6 +251,11 @@ export const useSim = create<SimState>((set, get) => ({
   setWorkspace: (workspace) => {
     if (!get().accepted) return
     set({ workspace, mission: workspace === 'learn' ? get().mission : null })
+  },
+  setCameraMode: (cameraMode) => set({ cameraMode }),
+  setRenderQuality: (renderQuality) => {
+    if (get().qualityLocked) return
+    set({ renderQuality })
   },
   setPhase: (phase) => set({ phase }),
   setCity: (id) => {
@@ -322,7 +338,7 @@ export const useSim = create<SimState>((set, get) => ({
   submitMissionPrediction: (index) => {
     const mission = get().mission
     if (!mission || mission.step !== 'predict') return
-    set({ mission: { ...mission, predictionIndex: index, step: 'configure-baseline' } })
+    set({ mission: { ...mission, predictionIndex: index, step: 'configure-baseline' }, cameraMode: 'field' })
   },
   restoreMissionSetup: () => {
     const mission = get().mission
@@ -433,6 +449,8 @@ export const useSim = create<SimState>((set, get) => ({
     }
     set({
       phase: 'detonate',
+      cameraMode: 'field',
+      qualityLocked: true,
       simTime: 0,
       playing: true,
       hasRun: true,
@@ -487,6 +505,8 @@ export const useSim = create<SimState>((set, get) => ({
       simTime: 120,
       playing: false,
       phase: 'explore',
+      cameraMode: 'field',
+      qualityLocked: true,
       workspace: 'explore',
       mission: null,
       probe: null,
