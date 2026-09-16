@@ -92,8 +92,14 @@ export function makeTerrainMaterial(): THREE.MeshStandardMaterial {
     ).replace(
       '#include <color_fragment>',
       `#include <color_fragment>
-      float n = noise(vWorldP.xz * 0.08) * 0.55 + noise(vWorldP.xz * 0.28) * 0.45;
-      diffuseColor.rgb *= 0.88 + 0.16 * n * uGrain;
+      // Multi-octave ground detail with derivative fade so distant terrain does
+      // not shimmer. Higher octaves drop out as a texel spans their wavelength.
+      float deriv = fwidth(vWorldP.x) + fwidth(vWorldP.z);
+      float n1 = noise(vWorldP.xz * 0.09);
+      float n2 = noise(vWorldP.xz * 0.34);
+      float n3 = noise(vWorldP.xz * 0.95);
+      float n = n1 * 0.6 + n2 * 0.3 * (1.0 - smoothstep(0.35, 2.2, deriv)) + n3 * 0.2 * (1.0 - smoothstep(0.12, 0.7, deriv));
+      diffuseColor.rgb *= 0.88 + 0.17 * n * uGrain;
       float r = length(vWorldP.xz - uGz.xz);
       float scorch = 0.0;
       if (uShock > 1.0) {

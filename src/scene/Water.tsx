@@ -4,6 +4,7 @@ import { useSim } from '../state/store'
 import { makeWaterMaterial } from './shaders/waterMat'
 import { atmosphereLook } from './atmosphere'
 import { buildShore } from './shore'
+import { useProbePicker } from './probePicker'
 import type { GeneratedCity } from '../city/types'
 
 export function Water() {
@@ -21,13 +22,15 @@ function WaterBody({ city }: { city: GeneratedCity }) {
     return makeWaterMaterial(color, chop)
   }, [biome.water])
   const timeOfDay = useSim((s) => s.timeOfDay)
+  const picker = useProbePicker()
 
   useFrame(({ clock }) => {
     mat.uniforms.uTime.value = clock.elapsedTime
     const look = atmosphereLook(timeOfDay, biome)
     mat.uniforms.uSun.value.set(look.sunPos[0], look.sunPos[1], look.sunPos[2])
+    mat.uniforms.uAmbient.value = Math.min(1, look.ambient / 0.5)
   })
 
   if (!geo) return null
-  return <mesh geometry={geo} material={mat} receiveShadow />
+  return <mesh geometry={geo} material={mat} receiveShadow {...picker} />
 }

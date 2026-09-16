@@ -4,6 +4,15 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Keep three addons pre-bundled so a new import cannot trigger a Vite dep
+  // re-optimization reload mid-session (which resets app state under test).
+  optimizeDeps: {
+    include: [
+      'three',
+      'three/examples/jsm/utils/BufferGeometryUtils.js',
+      'three/examples/jsm/environments/RoomEnvironment.js',
+    ],
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],

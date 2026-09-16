@@ -1,7 +1,8 @@
 import { Sky, Stars } from '@react-three/drei'
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import type { Sky as SkyImpl } from 'three-stdlib'
 import { useSim } from '../state/store'
 import { atmosphereLook, lightingAmount } from './atmosphere'
@@ -10,9 +11,27 @@ export function Atmosphere() {
   const timeOfDay = useSim((s) => s.timeOfDay)
   const biome = useSim((s) => s.city.biome)
   const reduced = useSim((s) => s.reducedMotion)
-  const { gl, camera } = useThree()
+  const { gl, camera, scene } = useThree()
   const look = useMemo(() => atmosphereLook(timeOfDay, biome), [timeOfDay, biome])
   const extent = biome.extentM
+
+  // Procedural PMREM environment (no network asset) so steel and glass pick up
+  // reflections instead of reading flat and dark.
+  useLayoutEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const env = new RoomEnvironment()
+    const target = pmrem.fromScene(env, 0.04)
+    scene.environment = target.texture
+    pmrem.dispose()
+    return () => {
+      scene.environment = null
+      target.dispose()
+    }
+  }, [gl, scene])
+
+  useEffect(() => {
+    scene.environmentIntensity = look.envInt * 0.35
+  }, [scene, look.envInt])
   const shadowExtent = extent * 0.42
   const amount = lightingAmount(timeOfDay)
   const night = amount < 0.22
@@ -56,8 +75,8 @@ export function Atmosphere() {
         color={look.sun}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.00018}
-        shadow-normalBias={2.4}
+        shadow-bias={-0.00012}
+        shadow-normalBias={0.7}
         shadow-camera-left={-shadowExtent}
         shadow-camera-right={shadowExtent}
         shadow-camera-top={shadowExtent}

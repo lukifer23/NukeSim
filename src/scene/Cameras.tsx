@@ -16,6 +16,7 @@ export function Cameras() {
   const controls = useRef<OrbitControlsImpl>(null)
   const { camera, size } = useThree()
   const phase = useSim((s) => s.phase)
+  const cityId = useSim((s) => s.cityId)
   const previousShake = useRef(new THREE.Vector3())
   const cinema = useRef(true)
   const shockWasInside = useRef(false)
@@ -121,7 +122,11 @@ export function Cameras() {
       shakeAmp.current *= 0.93
       camera.position.sub(previousShake.current)
       const amp = shakeAmp.current
-      previousShake.current.set(Math.sin(t * 31) * amp * 2.2, Math.sin(t * 43 + 0.7) * amp * 1.4, 0)
+      // Shake is a world-space offset, so it must scale with viewing distance
+      // to read as camera motion rather than a few invisible metres.
+      const gzDist = Math.max(1, Math.hypot(camera.position.x - s.impactOffset.x, camera.position.z - s.impactOffset.z))
+      const scale = gzDist / 45
+      previousShake.current.set(Math.sin(t * 31) * amp * 2.2 * scale, Math.sin(t * 43 + 0.7) * amp * 1.4 * scale, 0)
       camera.position.add(previousShake.current)
     } else {
       camera.position.sub(previousShake.current)
@@ -140,7 +145,7 @@ export function Cameras() {
       maxPolarAngle={Math.PI * 0.49}
       minDistance={70}
       maxDistance={phase === 'city-select' ? 18000 : 42000}
-      target={[0, 60, -160]}
+      target={CITY_CAMERA_FRAMES[cityId].target}
     />
   )
 }

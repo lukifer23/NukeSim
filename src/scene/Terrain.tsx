@@ -5,6 +5,7 @@ import { useSim } from '../state/store'
 import { blastGroundRangeM, fireballMaxRadiusM, shockRadiusAtTimeM } from '../sim'
 import { makeTerrainMaterial } from './shaders/terrainMat'
 import { getRenderTime } from './runtimeClock'
+import { useProbePicker } from './probePicker'
 
 export function Terrain() {
   const city = useSim((s) => s.city)
@@ -73,8 +74,9 @@ export function Terrain() {
     u.uPsi20.value = blastGroundRangeM(s.yieldKt, hob, 20)
   })
 
+  const picker = useProbePicker()
   return (
-    <mesh geometry={geo} material={mat} receiveShadow />
+    <mesh geometry={geo} material={mat} receiveShadow castShadow {...picker} />
   )
 }
 

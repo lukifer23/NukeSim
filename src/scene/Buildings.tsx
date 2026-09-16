@@ -91,20 +91,25 @@ export function Buildings() {
   )
 }
 
-function bindFacade(mesh: THREE.InstancedMesh, list: Building[]) {
+/** One window cell per ~3.4 m keeps window proportions square on every face. */
+const WINDOW_SPACING_M = 3.4
+
+function bindFacade(mesh: THREE.InstancedMesh, list: Building[], mode: 'tower' | 'podium') {
   const floors = new Float32Array(list.length)
   const seed = new Float32Array(list.length)
-  const cols = new Float32Array(list.length)
+  const cols = new Float32Array(list.length * 2)
   const style = new Float32Array(list.length)
   list.forEach((b, i) => {
-    floors[i] = b.floors
+    const h = mode === 'podium' ? b.podiumH : b.h
+    floors[i] = Math.max(1, Math.round(h / WINDOW_SPACING_M))
     seed[i] = b.seed
-    cols[i] = b.cols
+    cols[i * 2] = Math.max(1, Math.round(b.w / WINDOW_SPACING_M))
+    cols[i * 2 + 1] = Math.max(1, Math.round(b.d / WINDOW_SPACING_M))
     style[i] = styleId(b.variant)
   })
   mesh.geometry.setAttribute('aFloors', new THREE.InstancedBufferAttribute(floors, 1))
   mesh.geometry.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seed, 1))
-  mesh.geometry.setAttribute('aCols', new THREE.InstancedBufferAttribute(cols, 1))
+  mesh.geometry.setAttribute('aCols', new THREE.InstancedBufferAttribute(cols, 2))
   mesh.geometry.setAttribute('aStyle', new THREE.InstancedBufferAttribute(style, 1))
 }
 
@@ -139,7 +144,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
     lastK.current = new Float32Array(list.length)
     done.current = new Uint8Array(list.length)
     resetIgnitionCache(String(fieldSig))
-    bindFacade(mesh, list)
+    bindFacade(mesh, list, 'tower')
     if (!mesh.instanceColor) {
       mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(list.length * 3), 3)
     }
@@ -319,7 +324,7 @@ function PodiumLayer({ list }: { list: Building[] }) {
     const mesh = ref.current
     if (!mesh) return
     done.current = new Uint8Array(list.length)
-    bindFacade(mesh, list)
+    bindFacade(mesh, list, 'podium')
     if (!mesh.instanceColor) mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(list.length * 3), 3)
     list.forEach((b, i) => {
       const y = city.heightAt(b.x, b.z)
@@ -386,7 +391,7 @@ function RoofLayer({ list }: { list: Building[] }) {
   const city = useSim((s) => s.city)
   const cls = list[0]?.class ?? BuildingClass.Masonry
   const atlas = useMemo(() => buildingAtlas(cls, city.biome.id), [cls, city.biome.id])
-  const roofColor = useMemo(() => new THREE.Color(CLASS_COLOR[cls] ?? '#888').multiplyScalar(0.68), [cls])
+  const roofColor = useMemo(() => new THREE.Color(CLASS_COLOR[cls] ?? '#888').multiplyScalar(0.52), [cls])
   const last = useRef(new Float32Array(list.length))
   const done = useRef(new Uint8Array(list.length))
   const fieldSig = useSim((s) => s.runRevision)
@@ -472,7 +477,7 @@ function RoofLayer({ list }: { list: Building[] }) {
     <>
       <instancedMesh ref={roofs} args={[undefined, undefined, list.length]} castShadow receiveShadow>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial map={atlas?.roof ?? null} normalMap={atlas?.roofNormal ?? null} aoMap={atlas?.roofArm ?? null} roughnessMap={atlas?.roofArm ?? null} metalnessMap={atlas?.roofArm ?? null} color={roofColor} roughness={0.92} metalness={0.06} emissive="#313234" emissiveIntensity={0.24} />
+        <meshStandardMaterial map={atlas?.roof ?? null} normalMap={atlas?.roofNormal ?? null} aoMap={atlas?.roofArm ?? null} roughnessMap={atlas?.roofArm ?? null} metalnessMap={atlas?.roofArm ?? null} color={roofColor} roughness={0.94} metalness={0.05} emissive="#1c1e20" emissiveIntensity={0.12} />
       </instancedMesh>
       <instancedMesh ref={equipment} args={[undefined, undefined, list.length]} castShadow>
         <boxGeometry args={[1, 1, 1]} />
