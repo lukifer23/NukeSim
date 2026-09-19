@@ -148,10 +148,7 @@ describe('simulation run state', () => {
 
   it('covers free-play controls, probe recomputation, and comparison lifecycle', () => {
     const s = useSim.getState()
-    s.setWorkspace('compare')
-    expect(useSim.getState().workspace).toBe('explore')
     s.accept()
-    useSim.getState().setWorkspace('explore')
     useSim.getState().setPhase('bench')
     useSim.getState().setMunition('little-boy')
     useSim.getState().setCustomHob(300)
@@ -197,9 +194,6 @@ describe('simulation run state', () => {
     expect(useSim.getState().mission?.predictionIndex).toBe(1)
     useSim.getState().restartMission()
     expect(useSim.getState().mission?.step).toBe('predict')
-    useSim.getState().applyLessonCompare('knee')
-    expect(useSim.getState().comparison).not.toBeNull()
-    expect(useSim.getState().workspace).toBe('compare')
     useSim.getState().exitMission()
     expect(useSim.getState().mission).toBeNull()
     useSim.getState().resetLessonProgress()

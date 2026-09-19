@@ -20,7 +20,7 @@ import { BuildingClass as BC } from '../sim/types'
 import { setAudioMuted, unlockAudio } from '../audio/unlock'
 import { saveDraft, type ScenarioDraft } from './draft'
 import type { SharedScenario } from '../sim/scenario'
-import { LESSONS, resolvedLessonSetup, hobModeFromLesson } from '../data/lessons'
+import { LESSONS, resolvedLessonSetup } from '../data/lessons'
 import {
   expectedMissionScenario,
   missionScenarioMatches,
@@ -104,7 +104,6 @@ type SimState = {
   contextLost: boolean
   report: EffectsReport
   accept: () => void
-  setWorkspace: (workspace: Workspace) => void
   setCameraMode: (mode: CameraMode) => void
   setRenderQuality: (quality: RenderQuality) => void
   setPhase: (p: Phase) => void
@@ -135,7 +134,6 @@ type SimState = {
   exitMission: () => void
   resetLessonProgress: () => void
   applyLesson: (id: string) => void
-  applyLessonCompare: (id: string) => void
   setReduced: (v: boolean) => void
   setBuildingClass: (c: BuildingClass) => void
   startLaunch: () => void
@@ -291,10 +289,6 @@ export const useSim = create<SimState>((set, get) => ({
   report: computeEffects(inputFrom(initialSlice)),
 
   accept: () => set({ accepted: true, phase: 'city-select' }),
-  setWorkspace: (workspace) => {
-    if (!get().accepted) return
-    set({ workspace, mission: workspace === 'learn' ? get().mission : null })
-  },
   setCameraMode: (cameraMode) => set({ cameraMode }),
   setRenderQuality: (renderQuality) => {
     if (get().qualityLocked) return
@@ -452,16 +446,6 @@ export const useSim = create<SimState>((set, get) => ({
     get().setHobMode(setup.hobMode)
     if (setup.hobM != null) get().setCustomHob(setup.hobM)
     set({ lessonId: id, accepted: true })
-  },
-  applyLessonCompare: (id) => {
-    const lesson = LESSONS.find((item) => item.id === id)
-    if (!lesson?.compare) return
-    get().saveComparison()
-    const next = lesson.compare
-    if (next.yieldKt != null) get().setYield(next.yieldKt)
-    if (next.hobMode) get().setHobMode(hobModeFromLesson(next.hobMode))
-    if (next.hobM != null) get().setCustomHob(next.hobM)
-    set({ workspace: 'compare' })
   },
   setReduced: (reducedMotion) => set({ reducedMotion }),
   setBuildingClass: (buildingClass) => {
