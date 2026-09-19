@@ -31,7 +31,7 @@ async function shot(name) {
 }
 
 async function jump(label) {
-  await page.getByRole('button', { name: label, exact: true }).click({ force: true })
+  await page.getByRole('button', { name: label }).click({ force: true })
   await page.waitForTimeout(260)
 }
 
@@ -39,6 +39,7 @@ await page.goto(base, { waitUntil: 'networkidle' })
 await page.getByRole('button', { name: 'I understand — continue' }).click({ force: true })
 await page.getByRole('button', { name: 'Configure detonation' }).click({ force: true })
 await page.waitForTimeout(500)
+await shot('setup-bench')
 await page.getByRole('button', { name: 'Run field' }).click({ force: true })
 await page.getByRole('button', { name: 'Pause' }).click({ force: true })
 
