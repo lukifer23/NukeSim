@@ -45,7 +45,7 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`timeline-panel ${compact ? 'compact' : ''}`}>
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
+        <div className="min-w-0" aria-live="polite">
           <p key={moment.label} className="timeline-caption timeline-fade">{moment.label}</p>
           {!compact && <p key={moment.detail} className="timeline-detail timeline-fade">{moment.detail}</p>}
         </div>

@@ -24,7 +24,19 @@ export function ModelDrawer() {
   }, [open, setOpen])
   if (!open) return null
   return (
-    <aside className="model-drawer pointer-events-auto" role="dialog" aria-labelledby="model-drawer-title">
+    <aside
+      className="model-drawer pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="model-drawer-title"
+      onKeyDown={(event) => {
+        // The card is read-only, so keep keyboard focus on the close control.
+        if (event.key === 'Tab') {
+          event.preventDefault()
+          closeButton.current?.focus()
+        }
+      }}
+    >
       <header><div><span className="guide-eyebrow">Model card</span><h2 id="model-drawer-title">What this field can and cannot say</h2></div><button ref={closeButton} onClick={() => setOpen(false)} aria-label="Close model card">×</button></header>
       <p className="model-intro">{MODEL_VERSION}. Values show defensible educational relationships, not a local forecast, targeting analysis, or emergency instruction.</p>
       <div className="model-list">

@@ -102,7 +102,7 @@ export function Hud() {
         </nav>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1">
         {fieldPhase && panel === 'setup' && !watching && !debriefing && (
           <Bench />
         )}
@@ -148,7 +148,7 @@ export function Hud() {
             </ErrorBoundary>
           </Suspense>
         )}
-      </div>
+      </main>
       {glossaryId && (
         <Suspense fallback={null}>
           <ErrorBoundary label="glossary" renderFallback={() => null}>
