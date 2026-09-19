@@ -27,7 +27,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,7 +36,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      # Software WebGL is ~10x slower than the documented desktop target, so CI
+      # runs the desktop and phone projects (the tablet matrix stays local) with
+      # relaxed timeouts.
+      - run: npm run test:e2e -- --project=desktop --project=phone
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

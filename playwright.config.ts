@@ -5,11 +5,11 @@ const softwareWebgl = process.env.CI ? { launchOptions: { args: ['--enable-unsaf
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60_000,
-  expect: { timeout: 7_000 },
+  timeout: process.env.CI ? 150_000 : 60_000,
+  expect: { timeout: process.env.CI ? 30_000 : 7_000 },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
