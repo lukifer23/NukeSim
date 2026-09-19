@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in NukeSim is wrong or broken.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. NukeSim is an educational model — please keep examples fictional and non-operational.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Set yield / HOB / city to ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and OS
+      placeholder: e.g. Chrome 141 on macOS 15, or Safari on iOS 19
+    validations:
+      required: false
+  - type: textarea
+    id: numbers
+    attributes:
+      label: Relevant numbers
+      description: If a reported value looks wrong, include the yield, HOB, city, and the value you saw.
+    validations:
+      required: false

@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a lesson, control, or improvement.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to teach or do
+      description: The learning goal or use case behind the request.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Keep proposals educational. Targeting, weapon-design, or real-world operational tooling is out of scope.

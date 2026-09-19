@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/lukifer23/NukeSim/security/advisories/new
+    about: Please report vulnerabilities privately.
+  - name: Model contract
+    url: https://github.com/lukifer23/NukeSim/blob/main/docs/MODEL.md
+    about: Read what the numbers do and do not mean before filing a physics question.
