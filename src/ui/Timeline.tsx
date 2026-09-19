@@ -69,7 +69,7 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
           />
           <div className="mt-1 flex justify-between font-mono text-[9px] text-faint">
             {MARKS.map((m) => (
-              <button key={m.t} onClick={() => setSimTime(m.t)} className="hover:text-signal-hot">
+              <button key={m.t} onClick={() => setSimTime(m.t)} aria-label={`Jump to ${m.label}`} title={`Jump to ${m.label}`} className="hover:text-signal-hot">
                 {m.label}
               </button>
             ))}
@@ -77,7 +77,12 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
         </>
       )}
       <div className="timeline-toolbar">
-        <button className="timeline-primary" onClick={() => setPlaying(!playing)}>
+        <button
+          className="timeline-primary"
+          onClick={() => setPlaying(!playing)}
+          aria-keyshortcuts="Space"
+          title={playing ? 'Pause (Space)' : 'Play (Space)'}
+        >
           {playing ? <Pause aria-hidden="true" size={15} fill="currentColor" /> : <Play aria-hidden="true" size={15} fill="currentColor" />}
           {playing ? 'Pause' : 'Play'}
         </button>
@@ -88,13 +93,13 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
         )}
         {!compact && (
           <>
-            <button className="timeline-jump" onClick={() => setSimTime(0)}>
+            <button className="timeline-jump" onClick={() => setSimTime(0)} title="Jump to the flash">
               <RotateCcw aria-hidden="true" size={14} /> Flash
             </button>
-            <button className="timeline-jump" onClick={() => setSimTime(4)}>
+            <button className="timeline-jump" onClick={() => setSimTime(4)} title="Jump to the shock front">
               <Activity aria-hidden="true" size={14} /> Shock
             </button>
-            <button className="timeline-jump" onClick={() => setSimTime(90)}>
+            <button className="timeline-jump" onClick={() => setSimTime(90)} title="Jump past the blast">
               <CircleStop aria-hidden="true" size={14} /> Stabilize
             </button>
           </>

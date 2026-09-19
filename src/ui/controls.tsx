@@ -84,8 +84,10 @@ export function Slider({
   ariaLabel,
   accent = 'signal',
   showValue = true,
+  style,
   ...input
 }: SliderProps) {
+  const fill = max === min ? 0 : ((value - min) / (max - min)) * 100
   return (
     <div className="ns-slider-wrap">
       <div className="ns-slider-head">
@@ -101,6 +103,7 @@ export function Slider({
         max={max}
         step={step}
         value={value}
+        style={{ ...style, ['--ns-fill' as string]: `${fill}%` }}
         onChange={(e) => onChange(Number(e.target.value))}
         className={`ns-slider accent-${accent}`}
       />

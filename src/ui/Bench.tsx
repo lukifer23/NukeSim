@@ -25,7 +25,11 @@ export function Bench() {
   const focusHob = Boolean(lesson && (lesson.observation.kind === 'blast-fallout' || lesson.observation.kind === 'fallout-switch'))
 
   return (
-    <aside className="scenario-bench pointer-events-auto flex h-full w-[300px] shrink-0 flex-col border-r border-white/10 bg-panel/82 backdrop-blur-md">
+    <aside
+      id="setup-controls"
+      tabIndex={-1}
+      className="scenario-bench pointer-events-auto flex h-full w-[300px] shrink-0 flex-col border-r border-white/10 bg-panel/82 backdrop-blur-md"
+    >
       <header className="shrink-0 border-b border-white/10 px-4 py-3">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-signal/80">Setup</p>
         <h2 className="text-lg text-paper">{city.name}</h2>
@@ -194,7 +198,7 @@ export function Bench() {
         <MiniRings />
         <div className="mt-3 flex gap-2">
           <button
-            className="run-field flex flex-1 items-center justify-center gap-2 bg-signal py-3 text-sm font-semibold text-ink hover:bg-signal-hot"
+            className={`run-field flex flex-1 items-center justify-center gap-2 bg-signal py-3 text-sm font-semibold text-ink hover:bg-signal-hot ${missionReady ? 'ready' : ''}`}
             onClick={() => {
               s.startLaunch()
             }}

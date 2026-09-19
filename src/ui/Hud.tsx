@@ -13,7 +13,7 @@ import { GuidedPanel, MissionChip } from './GuidedPanel'
 import { FieldLegend } from './FieldLegend'
 import { ErrorBoundary } from './ErrorBoundary'
 import type { Workspace } from '../state/store'
-import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Search, Telescope } from 'lucide-react'
+import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Keyboard, Search, Telescope } from 'lucide-react'
 import type { CameraMode } from '../state/store'
 import { useHotkeys } from './useHotkeys'
 
@@ -68,6 +68,17 @@ export function Hud() {
 
   return (
     <div className={`pointer-events-none absolute inset-0 z-10 flex flex-col ${watching ? 'watch-dim' : ''}`}>
+      <a
+        className="skip-link"
+        href="#setup-controls"
+        onClick={(event) => {
+          event.preventDefault()
+          setPanel('setup')
+          requestAnimationFrame(() => document.getElementById('setup-controls')?.focus())
+        }}
+      >
+        Skip to setup controls
+      </a>
       <header className="app-header pointer-events-auto flex items-center justify-between border-b border-white/10 bg-ink/55 px-4 py-2 backdrop-blur-md">
         <div className="flex min-w-0 items-baseline gap-3">
           <Link to="/" className="font-semibold tracking-tight text-paper">
@@ -92,11 +103,14 @@ export function Hud() {
               Model
             </button>
             <button
-              className="text-body hover:text-signal-hot"
+              className="flex items-center gap-1.5 text-body hover:text-signal-hot"
               onClick={() => useSim.getState().toggleHelp()}
               aria-label="Keyboard shortcuts"
+              aria-keyshortcuts="?"
+              title="Keyboard shortcuts (?)"
             >
-              ?
+              <Keyboard aria-hidden="true" size={14} />
+              <span className="overflow-docs">Shortcuts</span>
             </button>
           </div>
         </nav>
@@ -202,15 +216,21 @@ function DebriefFallback() {
 function ViewDock() {
   const mode = useSim((s) => s.cameraMode)
   const setMode = useSim((s) => s.setCameraMode)
-  const views: Array<[CameraMode, string, typeof Telescope]> = [
-    ['field', 'Field', Telescope],
-    ['ground-zero', 'Ground zero', Building2],
-    ['cloud', 'Cloud', Cloud],
+  const views: Array<[CameraMode, string, typeof Telescope, string]> = [
+    ['field', 'Field', Telescope, '1'],
+    ['ground-zero', 'Ground zero', Building2, '2'],
+    ['cloud', 'Cloud', Cloud, '3'],
   ]
   return (
     <div className="view-tools pointer-events-auto" aria-label="Camera view">
-      {views.map(([id, label, Icon]) => (
-        <button key={id} aria-pressed={mode === id} onClick={() => setMode(id)}>
+      {views.map(([id, label, Icon, shortcut]) => (
+        <button
+          key={id}
+          aria-pressed={mode === id}
+          aria-keyshortcuts={shortcut}
+          title={`${label} view (${shortcut})`}
+          onClick={() => setMode(id)}
+        >
           <Icon aria-hidden="true" size={15} strokeWidth={1.8} />{label}
         </button>
       ))}
