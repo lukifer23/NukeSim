@@ -92,6 +92,6 @@ export function saveDraft(draft: ScenarioDraft, storage: Pick<Storage, 'setItem'
   }
 }
 
-function safeStorage(): Storage | null {
+export function safeStorage(): Storage | null {
   return typeof window === 'undefined' ? null : window.localStorage
 }
