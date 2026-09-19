@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 test('10 kt and 1 Mt playback hold the desktop frame budget', async ({ page }, testInfo) => {
-  test.skip(process.env.NUKESIM_PERF !== '1', 'Run npm run test:perf on the documented M3 Pro Chrome target.')
+  test.skip(process.env.NUKESIM_PERF !== '1', 'Run npm run test:perf on the documented desktop Chrome target.')
   test.skip(testInfo.project.name !== 'desktop', 'Runtime frame budget is calibrated for the primary desktop target.')
   await page.goto('/')
   await page.getByRole('button', { name: 'I understand — continue' }).click()

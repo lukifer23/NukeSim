@@ -1,3 +1,10 @@
+/**
+ * Visual-checkpoint harness. Drives the sandbox and writes stage captures
+ * (flash, fireball, shock, cloud, 1 Mt aftermath) to `artifacts/hitlist/`.
+ *
+ * Usage: start the dev server, then
+ *   NS_BASE=http://127.0.0.1:5173/ NS_TAG=mycheck npm run capture
+ */
 import { chromium } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 

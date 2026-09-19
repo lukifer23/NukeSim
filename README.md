@@ -19,7 +19,7 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`). **Chrome on an M3 Pro is the performance target.** Safari works via WebGL2.
+Open the URL Vite prints (usually `http://localhost:5173`). **A desktop Chrome target at 1512 × 850 is the performance baseline.** Safari works via WebGL2.
 
 The full 3D field targets desktop and tablet viewports (768 px wide and above). Phones receive a readable Academy/model landing instead of a compressed, misleading control surface.
 
@@ -31,7 +31,8 @@ npm run build
 npm run check:bundle  # 105 KiB main / 360 KiB lazy scene gzip ceilings
 npm run check:assets  # 6 MiB packaged visual-asset ceiling
 npm run verify        # full non-hardware release gate
-npm run test:perf     # headed Chrome FPS gate on the documented M3 Pro target
+npm run test:perf     # headed desktop Chrome FPS gate
+npm run capture       # stage screenshots to artifacts/hitlist (dev server running)
 npm run preview
 ```
 
@@ -101,3 +102,7 @@ docs/       model card, city notes, asset provenance
 ```
 
 The simulation uses one progressive **Setup** surface instead of competing workspace tabs. Environment controls stay available in the same sheet, collapsed until needed. Renderer quality may adapt before a run, then locks for that run so a comparison cannot change appearance midway through playback. Error boundaries isolate the field from the shell, a lost WebGL context surfaces a recoverable notice, and every asset — textures and fonts — is packaged locally, so the app makes no runtime CDN fetches. Texture and font sources are recorded in [`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md).
+
+## License
+
+NukeSim is released under the [MIT License](LICENSE). Third-party assets keep their own terms: Poly Haven materials are CC0 and IBM Plex is under the SIL Open Font License — see [`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md).

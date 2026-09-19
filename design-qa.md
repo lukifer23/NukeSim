@@ -4,8 +4,8 @@ Date: 2026-08-25
 
 ## Visual truth
 
-- Source audit: `/tmp/nukesim-audit-20260824/01-landing.png` through `11-tablet-configure.png`
-- Source contact sheet: `/tmp/nukesim-audit-20260824/contact-sheet.jpg`
+- Source audit: landing, setup, field, cloud, and tablet captures (11 screens) from a local pre-redesign audit
+- Source contact sheet: `contact-sheet.jpg` from the same audit
 - Implementation captures: `artifacts/design-qa/`
 - Exact setup comparison: `artifacts/design-qa/setup-before-after-exact.jpg`
 - Field, cloud, and responsive comparison: `artifacts/design-qa/final-before-after.jpg`
