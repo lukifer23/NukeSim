@@ -7,12 +7,8 @@ import { Title } from './Title'
 import { CitySelect } from './CitySelect'
 import { Bench } from './Bench'
 import { Timeline } from './Timeline'
-import { Probe } from './Probe'
-import { Glossary } from './Glossary'
 import { Link } from 'react-router-dom'
 import { GuidedPanel, MissionChip } from './GuidedPanel'
-import { ComparePanel } from './ComparePanel'
-import { ModelDrawer } from './ModelDrawer'
 import { FieldLegend } from './FieldLegend'
 import { ErrorBoundary } from './ErrorBoundary'
 import type { Workspace } from '../state/store'
@@ -22,9 +18,13 @@ import { useHotkeys } from './useHotkeys'
 
 type FieldPanel = 'setup' | 'experience' | 'inspector' | null
 
-// On-demand only, so it stays out of the main bundle.
+// On-demand only, so they stay out of the main bundle.
 const ShortcutsOverlay = lazy(() => import('./ShortcutsOverlay').then((m) => ({ default: m.ShortcutsOverlay })))
 const Debrief = lazy(() => import('./Debrief').then((m) => ({ default: m.Debrief })))
+const ModelDrawer = lazy(() => import('./ModelDrawer').then((m) => ({ default: m.ModelDrawer })))
+const Glossary = lazy(() => import('./Glossary').then((m) => ({ default: m.Glossary })))
+const Probe = lazy(() => import('./Probe').then((m) => ({ default: m.Probe })))
+const ComparePanel = lazy(() => import('./ComparePanel').then((m) => ({ default: m.ComparePanel })))
 
 export function Hud() {
   const phase = useSim((s) => s.phase)
@@ -33,6 +33,8 @@ export function Hud() {
   const munitionId = useSim((s) => s.munitionId)
   const workspace = useSim((s) => s.workspace)
   const setModelOpen = useSim((s) => s.setModelOpen)
+  const modelOpen = useSim((s) => s.modelOpen)
+  const glossaryId = useSim((s) => s.glossaryId)
   const overlays = useSim((s) => s.overlays)
   const probe = useSim((s) => s.probe)
   const mission = useSim((s) => s.mission)
@@ -112,13 +114,21 @@ export function Hud() {
           {fieldPhase && inspectReady && !debriefing && <ViewDock />}
           {fieldPhase && inspectReady && (
             <div className="right-stack pointer-events-none absolute right-4 top-16">
-              {panel === 'inspector' && <Probe />}
+              {panel === 'inspector' && (
+                <Suspense fallback={null}>
+                  <Probe />
+                </Suspense>
+              )}
               <FieldLegend />
             </div>
           )}
           {fieldPhase && workspace !== 'explore' && !watching && !debriefing && panel === 'experience' && (
             <div className="experience-panel pointer-events-none absolute left-4 top-4 z-10">
-              {workspace === 'learn' ? <GuidedPanel /> : workspace === 'compare' ? <ComparePanel /> : null}
+              {workspace === 'learn' ? <GuidedPanel /> : workspace === 'compare' ? (
+                <Suspense fallback={null}>
+                  <ComparePanel />
+                </Suspense>
+              ) : null}
             </div>
           )}
           {fieldPhase && workspace === 'learn' && mission && (watching || (inspectReady && panel !== 'experience')) && (
@@ -138,8 +148,20 @@ export function Hud() {
           </Suspense>
         )}
       </div>
-      <Glossary />
-      <ModelDrawer />
+      {glossaryId && (
+        <Suspense fallback={null}>
+          <ErrorBoundary label="glossary" renderFallback={() => null}>
+            <Glossary />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+      {modelOpen && (
+        <Suspense fallback={null}>
+          <ErrorBoundary label="model" renderFallback={() => null}>
+            <ModelDrawer />
+          </ErrorBoundary>
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <ErrorBoundary label="shortcuts" renderFallback={() => null}>
           <ShortcutsOverlay />

@@ -65,12 +65,13 @@ Five waves of visual, animation, physics, and feel work landed on top of the fid
 - **UX polish.** An in-app keyboard-shortcut panel (`?` or the header button), scenario autosave that resumes the last setup on reload while keeping the safety gate, and a debrief **Copy results** action with a shareable link. The shortcut and debrief panels are lazy chunks, which kept the main bundle under budget.
 - **Debris.** Fragments are launched outward from ground zero on shock arrival and integrated analytically against the real terrain: they arc, bounce with restitution and friction, then settle into piles instead of snapping to a precomputed point. No physics dependency; the effects model is unchanged.
 - **Review fixes.** Sky now clones three-stdlib's shared material for its PMREM probe; `startLaunch` bumps the field revision so a re-run resets the scene; shared scenarios persist a draft; the shortcut dialog manages focus; lazy chunks degrade in place.
+- **Bundle.** On-demand panels (model card, glossary, probe, compare) are lazy chunks, dropping the main bundle below the 100 KiB mark and restoring headroom for future work.
 
 ### Current verification
 
 - `npm run verify`: passed — 86 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
 - `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
-- Bundle: main 102.4 / 105 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
+- Bundle: main 99.4 / 105 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
 - Packaged visual assets: 4.97 / 6 MiB.
 
 ### Code health pass
