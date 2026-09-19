@@ -1,4 +1,6 @@
 import * as THREE from 'three'
+import { CRATER_EXTENT, CRATER_LIP, CRATER_RIM_START } from '../craterRelief'
+import { GLSL_HASH2 } from './glsl'
 
 export type TerrainUniforms = {
   uGz: { value: THREE.Vector3 }
@@ -44,12 +46,12 @@ export function makeTerrainMaterial(): THREE.MeshStandardMaterial {
       float craterY(float d){
         if (uCraterR <= 1.0 || uCraterD <= 0.0) return 0.0;
         float u = d / uCraterR;
-        if (u >= 1.28) return 0.0;
+        if (u >= ${CRATER_EXTENT}) return 0.0;
         float bowl = u < 1.0 ? -uCraterD * (1.0 - u * u) * (1.0 - u * u) : 0.0;
         float lip = 0.0;
-        if (u > 0.88) {
-          float t = (u - 0.88) / 0.4;
-          lip = uCraterD * 0.13 * 4.0 * t * (1.0 - t);
+        if (u > ${CRATER_RIM_START}) {
+          float t = (u - ${CRATER_RIM_START}) / ${(CRATER_EXTENT - CRATER_RIM_START).toFixed(2)};
+          lip = uCraterD * ${CRATER_LIP} * t * (1.0 - t);
         }
         return bowl + lip;
       }`,
@@ -82,7 +84,7 @@ export function makeTerrainMaterial(): THREE.MeshStandardMaterial {
       uniform float uPsi20;
       uniform float uGrain;
       varying vec3 vWorldP;
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      ${GLSL_HASH2}
       float noise(vec2 p){
         vec2 i = floor(p);
         vec2 f = fract(p);

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSim } from '../state/store'
+import { ringByPsi, ringById } from '../sim'
 import type { EffectKind } from '../sim/types'
 import { makeDrapedRing } from './drape'
 
@@ -122,8 +123,8 @@ export function OverlayRings() {
     return true
   }
 
-  const five = report.rings.find((r) => r.psi === 5)
-  const fireball = report.rings.find((r) => r.id === 'fireball')
+  const five = ringByPsi(report, 5)
+  const fireball = ringById(report, 'fireball')
 
   return (
     <group>

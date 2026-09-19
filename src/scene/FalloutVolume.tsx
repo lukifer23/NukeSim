@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
+import { GLSL_HASH2 } from './shaders/glsl'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSim } from '../state/store'
+import { FALLOUT_MIN_WIND_MPS, FALLOUT_SPREAD_FLOOR_S, FALLOUT_SPREAD_FRACTION } from '../sim'
 import { getRenderTime } from './runtimeClock'
 export function FalloutVolume() {
   const report = useSim((s) => s.report)
@@ -73,11 +75,11 @@ function FalloutPoly({
         uniform float uTime;
         uniform float uWind;
         varying vec2 vGz;
-        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        ${GLSL_HASH2}
         void main() {
           float r = length(vGz);
-          float arrival = r / max(uWind, 0.5);
-          float spread = max(180.0, arrival * 0.18);
+          float arrival = r / max(uWind, ${FALLOUT_MIN_WIND_MPS});
+          float spread = max(${FALLOUT_SPREAD_FLOOR_S}.0, arrival * ${FALLOUT_SPREAD_FRACTION});
           float prog = clamp((uTime - arrival + spread) / spread, 0.0, 1.0);
           if (prog <= 0.001) discard;
           // Reads as settled contamination: patchy, dust-toned, never a solid

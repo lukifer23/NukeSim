@@ -117,6 +117,8 @@ export function Debris() {
       pileB.count = 0
       return
     }
+    // Paused and camera-independent: nothing to integrate, keep last matrices.
+    if (dt <= 0.0001) return
 
     const hob = s.hobResolved()
     const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))

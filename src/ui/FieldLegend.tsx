@@ -1,4 +1,5 @@
 import { useSim } from '../state/store'
+import { ringByPsi, ringById } from '../sim'
 import { formatRange } from './format'
 import type { OverlayKey } from '../state/store'
 
@@ -6,9 +7,9 @@ export function FieldLegend() {
   const report = useSim((s) => s.report)
   const overlays = useSim((s) => s.overlays)
   const toggle = useSim((s) => s.toggleOverlay)
-  const five = report.rings.find((ring) => ring.psi === 5)
-  const thermal = report.rings.find((ring) => ring.id === 'thermal-3')
-  const prompt = report.rings.find((ring) => ring.id === 'rad-500')
+  const five = ringByPsi(report, 5)
+  const thermal = ringById(report, 'thermal-3')
+  const prompt = ringById(report, 'rad-500')
   const fields: Array<{ key: OverlayKey; label: string; color: string; value: string }> = [
     { key: 'blast', label: '5 psi blast', color: five?.color ?? '#d97a4a', value: formatRange(five?.radiusM ?? 0) },
     { key: 'thermal', label: '3° thermal', color: thermal?.color ?? '#c44b2b', value: formatRange(thermal?.radiusM ?? 0) },

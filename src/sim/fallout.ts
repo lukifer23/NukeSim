@@ -152,8 +152,16 @@ export const SHELTER_FACTOR: Record<string, number> = {
   heavy: 0.02,
 }
 
+/**
+ * Arrival / deposition constants shared with the rendered plume shader so the
+ * model and the visual cannot drift. See FalloutVolume.tsx.
+ */
+export const FALLOUT_MIN_WIND_MPS = 0.5
+export const FALLOUT_SPREAD_FLOOR_S = 180
+export const FALLOUT_SPREAD_FRACTION = 0.18
+
 export function arrivalHours(groundRangeM: number, windSpeedMps: number): number {
-  const v = Math.max(windSpeedMps, 0.5)
+  const v = Math.max(windSpeedMps, FALLOUT_MIN_WIND_MPS)
   return groundRangeM / v / 3600
 }
 
@@ -163,7 +171,7 @@ export function arrivalHours(groundRangeM: number, windSpeedMps: number): number
  */
 export function falloutDepositionProgress(groundRangeM: number, windSpeedMps: number, simTimeS: number): number {
   const arrivalS = arrivalHours(groundRangeM, windSpeedMps) * 3600
-  const spreadS = Math.max(180, arrivalS * 0.18)
+  const spreadS = Math.max(FALLOUT_SPREAD_FLOOR_S, arrivalS * FALLOUT_SPREAD_FRACTION)
   return Math.min(1, Math.max(0, (simTimeS - arrivalS + spreadS) / spreadS))
 }
 

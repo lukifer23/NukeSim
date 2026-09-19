@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useSim } from '../state/store'
+import { ringByPsi } from '../sim'
 import { formatYield } from './format'
 import { cityById } from '../data/cities'
 import { munitionLabel } from '../data/munitions'
@@ -42,7 +43,7 @@ export function Hud() {
   const simTime = useSim((s) => s.simTime)
   const contextLost = useSim((s) => s.contextLost)
   const [panel, setPanel] = useState<FieldPanel>('setup')
-  const blast = report.rings.find((r) => r.psi === 5)
+  const blast = ringByPsi(report, 5)
   const fieldTag = overlays.blast && blast ? blast.confidence : report.fireballTouchesGround ? 'heuristic' : 'interpolated'
   const cinemaDone = simTime >= 40 || !playing
   const watching = phase === 'detonate' && !cinemaDone

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSim } from '../state/store'
-import { sampleCasualties } from '../sim'
+import { sampleCasualties, ringByPsi, ringById } from '../sim'
 import { encodeScenario } from '../sim/scenario'
 import { formatNum, formatRange, formatYield } from './format'
 import { SOURCES } from '../data/sources'
@@ -26,8 +26,8 @@ export function Debrief() {
   if (lesson && s.mission?.baseline && s.mission.comparison && (s.mission.step === 'explain' || s.mission.step === 'complete')) {
     return <MissionDebrief />
   }
-  const ring5 = s.report.rings.find((r) => r.psi === 5)
-  const ring1 = s.report.rings.find((r) => r.psi === 1)
+  const ring5 = ringByPsi(s.report, 5)
+  const ring1 = ringByPsi(s.report, 1)
 
   return (
     <div className="debrief-sheet pointer-events-auto">
@@ -151,7 +151,7 @@ function summary(
 ): string {
   const url = new URL(window.location.href)
   url.search = encodeScenario({ ...s.scenario(), cityId: s.cityId, munitionId: s.munitionId })
-  const prompt = s.report.rings.find((ring) => ring.id === 'rad-500')
+  const prompt = ringById(s.report, 'rad-500')
   return [
     `NukeSim — ${formatYield(s.report.yieldKt)} over ${cityById(s.cityId).name}`,
     `HOB ${Math.round(s.report.hobM)} m · ${s.report.fireballTouchesGround ? 'surface-coupled' : 'airburst'}`,

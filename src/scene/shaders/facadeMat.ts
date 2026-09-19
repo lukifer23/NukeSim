@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLSL_HASH2 } from './glsl'
 
 const STYLE: Record<string, number> = {
   house: 0,
@@ -87,7 +88,7 @@ export function makeFacadeMaterial(opts: {
         varying float vStyle;
         varying float vDamage;
         uniform float uDay;
-        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`,
+        ${GLSL_HASH2}`,
       )
       .replace(
         '#include <color_fragment>',

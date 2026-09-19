@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLSL_HASH2 } from './glsl'
 
 export function makeSmokeMaterial(opts: { ice: boolean }): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -45,7 +46,7 @@ export function makeSmokeMaterial(opts: { ice: boolean }): THREE.ShaderMaterial 
       uniform float uOpacity;
       uniform float uIce;
       varying vec2 vUv;
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      ${GLSL_HASH2}
       float noise(vec2 x){
         vec2 i = floor(x);
         vec2 f = fract(x);
