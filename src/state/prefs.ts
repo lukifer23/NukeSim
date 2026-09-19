@@ -1,4 +1,4 @@
-import { safeStorage } from './draft'
+import { safeStorage } from './storage'
 
 export const PREFS_KEY = 'nukesim.prefs.v1'
 

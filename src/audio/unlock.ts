@@ -20,7 +20,9 @@ export function unlockAudio(): AudioContext | null {
       return null
     }
   }
-  if (ctx.state === 'suspended') void ctx.resume()
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {
+    // Autoplay policy can still refuse; the visual model does not depend on audio.
+  })
   return ctx
 }
 

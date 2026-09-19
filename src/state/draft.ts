@@ -2,6 +2,7 @@ import { clamp } from '../sim/units'
 import { BurstMode, type BurstMode as BurstModeT } from '../sim/types'
 import { CITIES, type CityId } from '../data/cities'
 import { MUNITIONS } from '../data/munitions'
+import { safeStorage } from './storage'
 import type { CameraMode, OverlayKey } from './store'
 
 export const SCENARIO_DRAFT_KEY = 'nukesim.scenario-draft.v1'
@@ -90,8 +91,4 @@ export function saveDraft(draft: ScenarioDraft, storage: Pick<Storage, 'setItem'
   } catch {
     // Private browsing can reject writes. The session still works.
   }
-}
-
-export function safeStorage(): Storage | null {
-  return typeof window === 'undefined' ? null : window.localStorage
 }

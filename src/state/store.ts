@@ -296,7 +296,11 @@ export const useSim = create<SimState>((set, get) => ({
   helpOpen: false,
   report: computeEffects(inputFrom(initialSlice)),
 
-  accept: () => set({ accepted: true, phase: 'city-select' }),
+  accept: () => {
+    // A shared scenario is preloaded with hasRun, so accepting its disclaimer
+    // drops straight into the field instead of the city chooser.
+    set({ accepted: true, phase: get().hasRun ? 'explore' : 'city-select' })
+  },
   setCameraMode: (cameraMode) => {
     set({ cameraMode })
     persistDraft(get())
@@ -307,6 +311,8 @@ export const useSim = create<SimState>((set, get) => ({
   },
   setPhase: (phase) => set({ phase }),
   setCity: (id) => {
+    // Reselecting the current city must not wipe the saved comparison/ghost.
+    if (id === get().cityId) return
     const biome = cityById(id)
     const city = cityFor(id)
     updatePhysicalScenario(set, get, {
@@ -458,7 +464,7 @@ export const useSim = create<SimState>((set, get) => ({
     get().setMunition(setup.munitionId)
     get().setYield(setup.yieldKt)
     get().setHobMode(setup.hobMode)
-    if (setup.hobM != null) get().setCustomHob(setup.hobM)
+    if (setup.hobMode === BurstMode.Custom && setup.hobM != null) get().setCustomHob(setup.hobM)
     set({ lessonId: id, accepted: true })
   },
   setReduced: (reducedMotion) => set({ reducedMotion }),
@@ -554,7 +560,9 @@ export const useSim = create<SimState>((set, get) => ({
     }
     const report = computeEffects(inputFrom(slice))
     set({
-      accepted: true,
+      // Keep the disclaimer gate for shared links; accept() sends the visitor
+      // into the field because hasRun is already true.
+      accepted: false,
       cityId: scenario.cityId,
       city,
       munitionId: scenario.munitionId ?? get().munitionId,
@@ -563,11 +571,12 @@ export const useSim = create<SimState>((set, get) => ({
       hasRun: true,
       simTime: 120,
       playing: false,
-      phase: 'explore',
+      phase: 'title',
       cameraMode: 'field',
       qualityLocked: true,
       workspace: 'explore',
       mission: null,
+      lessonId: null,
       probe: null,
       comparison: null,
       ghost: null,
@@ -614,6 +623,8 @@ export const useSim = create<SimState>((set, get) => ({
       playing: false,
       simTime: 0,
       phase: 'bench',
+      workspace: 'explore',
+      lessonId: null,
       runRevision: get().runRevision + 1,
       qualityLocked: false,
     })

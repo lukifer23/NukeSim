@@ -266,4 +266,31 @@ describe('simulation run state', () => {
     })
     expect(useSim.getState().cameraMode).toBe('cloud')
   })
+
+  it('keeps the comparison when the same city is reselected', () => {
+    const s = useSim.getState()
+    s.accept()
+    s.setPhase('bench')
+    s.startLaunch()
+    useSim.getState().saveComparison()
+    expect(useSim.getState().comparison).not.toBeNull()
+
+    useSim.getState().setCity(useSim.getState().cityId)
+    expect(useSim.getState().comparison).not.toBeNull()
+  })
+
+  it('holds the disclaimer gate for shared scenarios, then enters the field', () => {
+    useSim.getState().loadSharedScenario({
+      cityId: 'dune', yieldKt: 15, hobM: 0, fissionFraction: 1, windSpeedMps: 4, windDirDeg: 180, visibilityKm: 12,
+    })
+    const loaded = useSim.getState()
+    expect(loaded.accepted).toBe(false)
+    expect(loaded.phase).toBe('title')
+    expect(loaded.hasRun).toBe(true)
+    expect(loaded.lessonId).toBeNull()
+
+    loaded.accept()
+    expect(useSim.getState().accepted).toBe(true)
+    expect(useSim.getState().phase).toBe('explore')
+  })
 })
