@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { GLSL_HASH2 } from './glsl'
+import { GLSL_HASH2, GLSL_VALUE_NOISE2 } from './glsl'
 
 export function makeFireMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -31,12 +31,7 @@ export function makeFireMaterial(): THREE.ShaderMaterial {
       varying vec2 vUv;
       varying float vSeed;
       ${GLSL_HASH2}
-      float noise(vec2 p){
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        f = f*f*(3.0-2.0*f);
-        return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
-      }
+      ${GLSL_VALUE_NOISE2}
       float fbm(vec2 p){
         float s = 0.0; float a = 0.5;
         for(int i=0;i<4;i++){ s += a * noise(p); p *= 2.13; a *= 0.55; }

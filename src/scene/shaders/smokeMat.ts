@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { GLSL_HASH2 } from './glsl'
+import { GLSL_HASH2, GLSL_VALUE_NOISE2 } from './glsl'
 
 export function makeSmokeMaterial(opts: { ice: boolean }): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -47,12 +47,7 @@ export function makeSmokeMaterial(opts: { ice: boolean }): THREE.ShaderMaterial 
       uniform float uIce;
       varying vec2 vUv;
       ${GLSL_HASH2}
-      float noise(vec2 x){
-        vec2 i = floor(x);
-        vec2 f = fract(x);
-        f = f*f*(3.0-2.0*f);
-        return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
-      }
+      ${GLSL_VALUE_NOISE2}
       float fbm(vec2 p){
         float a = 0.5; float s = 0.0;
         for(int i=0;i<4;i++){ s += a * noise(p); p *= 2.07; a *= 0.52; }

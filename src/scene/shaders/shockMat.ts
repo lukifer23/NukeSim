@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLSL_NOISE3_VALUE } from './glsl'
 
 export function makeShockMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -32,14 +33,7 @@ export function makeShockMaterial(): THREE.ShaderMaterial {
       varying vec3 vW;
       varying vec3 vObj;
 
-      float hash(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
-      float noise(vec3 x){
-        vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);
-        return mix(mix(mix(hash(i), hash(i+vec3(1,0,0)), f.x),
-                       mix(hash(i+vec3(0,1,0)), hash(i+vec3(1,1,0)), f.x), f.y),
-                   mix(mix(hash(i+vec3(0,0,1)), hash(i+vec3(1,0,1)), f.x),
-                       mix(hash(i+vec3(0,1,1)), hash(i+vec3(1,1,1)), f.x), f.y), f.z);
-      }
+      ${GLSL_NOISE3_VALUE}
 
       void main(){
         vec3 n = normalize(vN);
