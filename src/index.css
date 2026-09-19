@@ -59,7 +59,7 @@
   --color-paper: #f2eee6;
   --color-body: #d7d2c8;
   --color-mute: #8a857a;
-  --color-faint: #6a665c;
+  --color-faint: #857f73;
   --color-signal: #f59e0b;
   --color-signal-hot: #fbbf24;
   --color-accent: #2dd4bf;
@@ -86,6 +86,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 }
 
 button:not(:disabled), summary, [role="button"] { cursor: pointer; }
+button:disabled, input:disabled { cursor: not-allowed; opacity: .42; }
 
 .skip-link {
   position: absolute;
@@ -386,12 +387,12 @@ button:not(:disabled), summary, [role="button"] { cursor: pointer; }
 .city-card .hook { margin-top: 10px; color: var(--color-mute); font-size: 12px; line-height: 1.45; }
 
 .watch-dim .scenario-bench { display: none; }
-.watch-dim .hud-tools { opacity: 0; pointer-events: none; }
-.watch-dim .experience-panel { opacity: 0; pointer-events: none; }
+.watch-dim .hud-tools, .watch-dim .experience-panel { opacity: 0; pointer-events: none; visibility: hidden; }
 .hud-tools, .experience-panel { transition: opacity 220ms ease; }
 
 @media (pointer: coarse) {
-  .hud-tools button, .view-tools button, .guide-actions button, .guide-options button, .compare-card button, .field-legend > button, .ns-chip, .yield-notch, .timeline-primary, .timeline-jump { min-height: 44px; }
+  .hud-tools button, .view-tools button, .guide-actions button, .guide-options button, .compare-card button, .field-legend > button, .ns-chip, .yield-notch, .timeline-primary, .timeline-jump, .mission-picker button, .mission-debrief-actions button, .academy-lesson > button { min-height: 44px; }
+  .mission-exit, .model-drawer header button { min-width: 44px; min-height: 44px; }
 }
 
 .compact-landing {

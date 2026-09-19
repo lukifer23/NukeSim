@@ -48,12 +48,9 @@ export function Chip({
 
 export function Label({ children, tip }: { children: ReactNode; tip?: string }) {
   const setGlossary = useSim((s) => s.setGlossary)
+  if (!tip) return <span className="ns-label">{children}</span>
   return (
-    <button
-      type="button"
-      onClick={() => tip && setGlossary(tip)}
-      className={`ns-label ${tip ? 'has-tip' : ''}`}
-    >
+    <button type="button" onClick={() => setGlossary(tip)} className="ns-label has-tip">
       {children}
     </button>
   )

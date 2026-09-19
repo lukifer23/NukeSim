@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { CITIES } from '../data/cities'
 import { DISCLAIMER, PRODUCT_BLURB } from '../data/sources'
 import { blastGroundRangeM } from '../sim/blast'
-import { formatRange } from '../sim/units'
+import { formatRange } from './format'
 
 const HOB_M = 200
 const R10 = blastGroundRangeM(10, HOB_M, 5)

@@ -82,6 +82,8 @@ export function About() {
           </div>
           <button
             onClick={() => setReduced(!reduced)}
+            aria-pressed={reduced}
+            aria-label="Reduced motion"
             className={`px-3 py-1.5 font-mono text-[11px] ${reduced ? 'bg-amber-500 text-black' : 'bg-white/10 text-[#d7d2c8]'}`}
           >
             {reduced ? 'On' : 'Off'}

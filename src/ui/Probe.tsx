@@ -1,6 +1,6 @@
 import { useSim } from '../state/store'
 import { formatNum, formatRange, formatTime } from './format'
-import { BuildingClass } from '../sim/types'
+import { BuildingClass, Shelter } from '../sim/types'
 import { Chip, Slider } from './controls'
 
 export function Probe() {
@@ -40,18 +40,14 @@ export function Probe() {
       <Row k="Building" v={probe.buildingDamage} />
       <Row k="Fatality / injury" v={`${Math.round(probe.fatalityFrac * 100)}% / ${Math.round(probe.injuryFrac * 100)}%`} />
       <div className="mt-2 flex flex-wrap gap-1">
-        {(['wood', 'masonry', 'steel', 'concrete', 'heavy'] as const).map((cls) => (
-          <Chip
-            key={cls}
-            on={buildingClass === cls}
-            onClick={() => setBuildingClass(cls as typeof BuildingClass.Wood)}
-          >
+        {Object.values(BuildingClass).map((cls) => (
+          <Chip key={cls} on={buildingClass === cls} onClick={() => setBuildingClass(cls)}>
             {cls}
           </Chip>
         ))}
       </div>
       <div className="mt-2 flex gap-1">
-        {(['open', 'wood', 'basement', 'heavy'] as const).map((sh) => (
+        {Object.values(Shelter).map((sh) => (
           <Chip key={sh} on={shelter === sh} onClick={() => setShelter(sh)}>
             {sh}
           </Chip>
@@ -78,9 +74,13 @@ function Row({ k, v, tip }: { k: string; v: string; tip?: string }) {
   const setGlossary = useSim((s) => s.setGlossary)
   return (
     <div className="mt-1 flex justify-between gap-3 font-mono text-[11px]">
-      <button className={`text-mute ${tip ? 'has-tip ns-label' : ''} hover:text-signal-hot`} onClick={() => tip && setGlossary(tip)}>
-        {k}
-      </button>
+      {tip ? (
+        <button className="text-mute has-tip ns-label hover:text-signal-hot" onClick={() => setGlossary(tip)}>
+          {k}
+        </button>
+      ) : (
+        <span className="text-mute">{k}</span>
+      )}
       <span className="text-paper">{v}</span>
     </div>
   )

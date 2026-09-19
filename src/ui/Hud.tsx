@@ -203,11 +203,13 @@ export function Hud() {
           </ErrorBoundary>
         </Suspense>
       )}
-      <Suspense fallback={null}>
-        <ErrorBoundary label="shortcuts" renderFallback={() => null}>
-          <ShortcutsOverlay />
-        </ErrorBoundary>
-      </Suspense>
+      {helpOpen && (
+        <Suspense fallback={null}>
+          <ErrorBoundary label="shortcuts" renderFallback={() => null}>
+            <ShortcutsOverlay />
+          </ErrorBoundary>
+        </Suspense>
+      )}
       {contextLost && (
         <div className="pointer-events-auto absolute inset-x-0 top-16 z-30 flex justify-center px-4">
           <div className="ctx-lost" role="status">

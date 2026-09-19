@@ -17,11 +17,11 @@ export function Academy() {
         <Link to="/" className="font-mono text-[11px] text-amber-400">← sandbox</Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-teal-400">Four missions · ~5 minutes each</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-teal-400">{LESSONS.length} missions · ~5 minutes each</p>
         <h1 className="mt-2 text-3xl text-[#f2eee6]">Predict first. Then make the field prove it.</h1>
         <div className="academy-summary">
-          <span>{complete}/4 current-model missions complete</span>
-          <div className="academy-meter" role="progressbar" aria-label="Academy progress" aria-valuemin={0} aria-valuemax={4} aria-valuenow={complete}><i style={{ width: `${complete * 25}%` }} /></div>
+          <span>{complete}/{LESSONS.length} current-model missions complete</span>
+          <div className="academy-meter" role="progressbar" aria-label="Academy progress" aria-valuemin={0} aria-valuemax={LESSONS.length} aria-valuenow={complete}><i style={{ width: `${(complete / LESSONS.length) * 100}%` }} /></div>
           {!confirmReset ? (
             <button onClick={() => setConfirmReset(true)} disabled={Object.keys(progress.records).length === 0}>Reset progress</button>
           ) : (

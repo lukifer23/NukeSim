@@ -1,4 +1,4 @@
-import { formatTime } from '../sim/units'
+import { formatTime } from './format'
 import { MAX_SIM_TIME_S, playbackRate } from '../sim/timeline'
 import { useSim } from '../state/store'
 import { fieldMoment } from './fieldMoment'
@@ -39,6 +39,8 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
   const skipCinema = useSim((s) => s.skipCinema)
   const falloutActive = useSim((s) => s.report.fireballTouchesGround)
   if (phase === 'title' || phase === 'city-select') return null
+  // Before a run there is no field timeline to scrub or play.
+  const canScrub = hasRun
   const moment = fieldMoment(simTime, falloutActive)
   const effectiveRate = playbackRate(simTime, speed)
 
@@ -47,7 +49,9 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0" aria-live="polite">
           <p key={moment.label} className="timeline-caption timeline-fade">{moment.label}</p>
-          {!compact && <p key={moment.detail} className="timeline-detail timeline-fade">{moment.detail}</p>}
+          {!compact && (canScrub
+            ? <p key={moment.detail} className="timeline-detail timeline-fade">{moment.detail}</p>
+            : <p className="timeline-detail">Run the field to scrub through time.</p>)}
         </div>
         <span className="shrink-0 font-mono text-[12px] text-signal-hot">{formatTime(simTime)}</span>
       </div>
@@ -60,6 +64,7 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
             max={1}
             step={0.0005}
             value={toSlider(simTime)}
+            disabled={!canScrub}
             onChange={(u) => {
               setSimTime(fromSlider(u))
               setPlaying(false)
@@ -69,7 +74,7 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
           />
           <div className="mt-1 flex justify-between font-mono text-[9px] text-faint">
             {MARKS.map((m) => (
-              <button key={m.t} onClick={() => setSimTime(m.t)} aria-label={`Jump to ${m.label}`} title={`Jump to ${m.label}`} className="hover:text-signal-hot">
+              <button key={m.t} onClick={() => setSimTime(m.t)} disabled={!canScrub} aria-label={`Jump to ${m.label}`} title={`Jump to ${m.label}`} className="hover:text-signal-hot">
                 {m.label}
               </button>
             ))}
@@ -80,6 +85,7 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
         <button
           className="timeline-primary"
           onClick={() => setPlaying(!playing)}
+          disabled={!canScrub}
           aria-keyshortcuts="Space"
           title={playing ? 'Pause (Space)' : 'Play (Space)'}
         >
@@ -93,13 +99,13 @@ export function Timeline({ compact = false }: { compact?: boolean }) {
         )}
         {!compact && (
           <>
-            <button className="timeline-jump" onClick={() => setSimTime(0)} title="Jump to the flash">
+            <button className="timeline-jump" onClick={() => setSimTime(0)} disabled={!canScrub} title="Jump to the flash">
               <RotateCcw aria-hidden="true" size={14} /> Flash
             </button>
-            <button className="timeline-jump" onClick={() => setSimTime(4)} title="Jump to the shock front">
+            <button className="timeline-jump" onClick={() => setSimTime(4)} disabled={!canScrub} title="Jump to the shock front">
               <Activity aria-hidden="true" size={14} /> Shock
             </button>
-            <button className="timeline-jump" onClick={() => setSimTime(90)} title="Jump past the blast">
+            <button className="timeline-jump" onClick={() => setSimTime(90)} disabled={!canScrub} title="Jump past the blast">
               <CircleStop aria-hidden="true" size={14} /> Stabilize
             </button>
           </>
