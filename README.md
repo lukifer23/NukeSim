@@ -36,7 +36,7 @@ npm run capture       # stage screenshots to artifacts/hitlist (dev server runni
 npm run preview
 ```
 
-Continuous integration runs lint, unit coverage, build, and the bundle/asset budgets on every push. The browser E2E and headed FPS gates (`npm run test:e2e`, `npm run test:perf`) run locally, where a real GPU is available.
+Continuous integration runs lint, unit coverage, the build with bundle and asset budgets, and the Playwright E2E suite (Chromium with software WebGL) on every push. The headed FPS gate (`npm run test:perf`) runs locally on the documented desktop target.
 
 ## What you can change
 

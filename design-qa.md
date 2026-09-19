@@ -71,10 +71,11 @@ Five waves of visual, animation, physics, and feel work landed on top of the fid
 - **Reset.** `resetScenario` restores the free-play defaults in one click (hidden during a guided mission), invalidates any recorded run, and clears the comparison baseline.
 - **Controls & view state.** Sliders draw their filled progress so the current value reads at a glance; every overlay row and camera button shows its hotkey (B/T/R/F/L, 1/2/3) with `aria-keyshortcuts`; the header exposes a labeled **Shortcuts** control. The saved draft now also persists the overlay set and camera mode, so a reload resumes the exact view.
 - **Onboarding & presets.** A one-time, dismissible hint points new visitors at the shortcut panel (remembered in local UI preferences). The Setup bench opens with three **Quick scenarios** that pair yield, burst height, and fission (optimized airburst, surface fallout, thermal pulse), each marked when active. The tool/inspector panel choice is remembered per field phase instead of resetting on every transition.
+- **Test depth.** Coverage rose to 93.5% statements / 95.8% lines after unit tests for the munitions presets, scene massing and draped-ring geometry, and error-boundary recovery. CI now runs the Playwright E2E suite (Chromium with software WebGL) alongside the static gates.
 
 ### Current verification
 
-- `npm run verify`: passed — 96 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
+- `npm run verify`: passed — 109 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
 - `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
 - Bundle: main 100.6 / 105 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
 - Packaged visual assets: 4.97 / 6 MiB.
