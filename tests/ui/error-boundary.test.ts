@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement, type ReactElement, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { ErrorBoundary } from '../../src/ui/ErrorBoundary'
@@ -51,5 +51,24 @@ describe('ErrorBoundary', () => {
       ),
     )
     expect(container?.textContent).toContain('custom fallback')
+  })
+
+  it('recovers and calls onReset once the child stops throwing', () => {
+    let boom = true
+    function Flaky() {
+      if (boom) throw new Error('boom')
+      return createElement('span', null, 'recovered')
+    }
+    const onReset = vi.fn()
+    mount(createElement(ErrorBoundary, { onReset }, createElement(Flaky)))
+    expect(container?.textContent).toContain('Something went wrong')
+
+    boom = false
+    const retry = container?.querySelector('button') as HTMLButtonElement
+    act(() => {
+      retry.click()
+    })
+    expect(onReset).toHaveBeenCalledTimes(1)
+    expect(container?.textContent).toContain('recovered')
   })
 })
