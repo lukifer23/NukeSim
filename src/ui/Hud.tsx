@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useSim } from '../state/store'
 import { ringByPsi } from '../sim'
+import { loadPrefs, savePrefs } from '../state/prefs'
 import { formatYield } from './format'
 import { cityById } from '../data/cities'
 import { munitionLabel } from '../data/munitions'
@@ -12,7 +13,7 @@ import { Link } from 'react-router-dom'
 import { GuidedPanel, MissionChip } from './GuidedPanel'
 import { FieldLegend } from './FieldLegend'
 import { ErrorBoundary } from './ErrorBoundary'
-import type { Workspace } from '../state/store'
+import type { Phase, Workspace } from '../state/store'
 import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Keyboard, Search, Telescope } from 'lucide-react'
 import type { CameraMode } from '../state/store'
 import { useHotkeys } from './useHotkeys'
@@ -42,7 +43,18 @@ export function Hud() {
   const playing = useSim((s) => s.playing)
   const simTime = useSim((s) => s.simTime)
   const contextLost = useSim((s) => s.contextLost)
-  const [panel, setPanel] = useState<FieldPanel>('setup')
+  const helpOpen = useSim((s) => s.helpOpen)
+  const [panel, setPanelState] = useState<FieldPanel>('setup')
+  const panelMemory = useRef<Partial<Record<Phase, FieldPanel>>>({})
+  const setPanel = useCallback((next: FieldPanel) => {
+    panelMemory.current[useSim.getState().phase] = next
+    setPanelState(next)
+  }, [])
+  const [hintSeen, setHintSeen] = useState(() => loadPrefs().helpSeen)
+  const dismissHint = useCallback(() => {
+    setHintSeen(true)
+    savePrefs({ helpSeen: true })
+  }, [])
   const blast = ringByPsi(report, 5)
   const fieldTag = overlays.blast && blast ? blast.confidence : report.fireballTouchesGround ? 'heuristic' : 'interpolated'
   const cinemaDone = simTime >= 40 || !playing
@@ -53,32 +65,40 @@ export function Hud() {
   useHotkeys()
 
   useEffect(() => {
-    if (phase === 'bench') {
-      if (mission?.step === 'predict') setPanel('experience')
-      else setPanel('setup')
+    if (mission?.step === 'predict' || mission?.step.startsWith('observe-')) {
+      setPanelState('experience')
+      return
     }
-    else if (phase === 'detonate') setPanel(null)
-    else if (phase === 'explore' && mission && mission.step.startsWith('observe-')) setPanel('experience')
-    else if (phase === 'explore' || phase === 'debrief') setPanel('inspector')
+    if (phase === 'detonate') {
+      setPanelState(null)
+      return
+    }
+    setPanelState(panelMemory.current[phase] ?? (phase === 'bench' ? 'setup' : 'inspector'))
   }, [phase, mission])
 
   useEffect(() => {
-    if (phase === 'explore' && probe) setPanel('inspector')
+    if (phase === 'explore' && probe) setPanelState('inspector')
   }, [phase, probe])
+
+  useEffect(() => {
+    if (helpOpen && !hintSeen) dismissHint()
+  }, [helpOpen, hintSeen, dismissHint])
 
   return (
     <div className={`pointer-events-none absolute inset-0 z-10 flex flex-col ${watching ? 'watch-dim' : ''}`}>
-      <a
-        className="skip-link"
-        href="#setup-controls"
-        onClick={(event) => {
-          event.preventDefault()
-          setPanel('setup')
-          requestAnimationFrame(() => document.getElementById('setup-controls')?.focus())
-        }}
-      >
-        Skip to setup controls
-      </a>
+      {fieldPhase && !watching && !debriefing && (
+        <a
+          className="skip-link"
+          href="#setup-controls"
+          onClick={(event) => {
+            event.preventDefault()
+            setPanel('setup')
+            requestAnimationFrame(() => document.getElementById('setup-controls')?.focus())
+          }}
+        >
+          Skip to setup controls
+        </a>
+      )}
       <header className="app-header pointer-events-auto flex items-center justify-between border-b border-white/10 bg-ink/55 px-4 py-2 backdrop-blur-md">
         <div className="flex min-w-0 items-baseline gap-3">
           <Link to="/" className="font-semibold tracking-tight text-paper">
@@ -163,6 +183,12 @@ export function Hud() {
           </Suspense>
         )}
       </main>
+      {!hintSeen && phase === 'bench' && !watching && (
+        <div className="first-run-hint pointer-events-auto" role="note">
+          <p>New here? Press <kbd>?</kbd> any time for keyboard and field controls.</p>
+          <button type="button" onClick={dismissHint}>Got it</button>
+        </div>
+      )}
       {glossaryId && (
         <Suspense fallback={null}>
           <ErrorBoundary label="glossary" renderFallback={() => null}>

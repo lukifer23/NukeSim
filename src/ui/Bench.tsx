@@ -8,6 +8,7 @@ import { ScenarioShare } from './ScenarioShare'
 import { LESSONS } from '../data/lessons'
 import { missionScenarioMatches } from '../learn/mission'
 import { Chip, Label, Slider } from './controls'
+import { SCENARIO_PRESETS, matchesPreset, type ScenarioPreset } from '../data/presets'
 import { ChevronDown, GitCompare, MapPin, Play, Volume2, VolumeX } from 'lucide-react'
 
 export function Bench() {
@@ -45,6 +46,21 @@ export function Bench() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
       <section className="bench-section space-y-2 px-4 py-4">
+        <p className="bench-section-title">Quick scenarios</p>
+        <div className="flex flex-wrap gap-1">
+          {SCENARIO_PRESETS.map((preset) => (
+            <Chip
+              key={preset.id}
+              on={matchesPreset(preset, s)}
+              title={preset.tip}
+              onClick={() => applyPreset(s, preset)}
+            >
+              {preset.label}
+            </Chip>
+          ))}
+        </div>
+      </section>
+      <section className="bench-section space-y-2 border-t border-white/10 px-4 py-4">
         <p className="bench-section-title">Essentials</p>
         <Label tip="cep">Delivery context</Label>
         <div className="flex flex-wrap gap-1">
@@ -241,6 +257,12 @@ export function Bench() {
       </section>
     </aside>
   )
+}
+
+function applyPreset(store: ReturnType<typeof useSim.getState>, preset: ScenarioPreset) {
+  store.setYield(preset.yieldKt)
+  store.setHobMode(preset.hobMode)
+  store.setFission(preset.fissionFraction)
 }
 
 function MiniRings() {

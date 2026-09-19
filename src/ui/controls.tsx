@@ -25,16 +25,19 @@ export function Chip({
   onClick,
   children,
   className = '',
+  title,
 }: {
   on: boolean
   onClick: () => void
   children: ReactNode
   className?: string
+  title?: string
 }) {
   return (
     <button
       type="button"
       aria-pressed={on}
+      title={title}
       onClick={onClick}
       className={`ns-chip ${on ? 'on' : ''} ${className}`}
     >

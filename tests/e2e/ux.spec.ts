@@ -43,3 +43,18 @@ test('reset setup returns the scenario to the free-play defaults', async ({ page
   await page.getByRole('button', { name: 'Reset setup' }).click({ force: true })
   await expect(page.locator('.scenario-readout')).toContainText('10 kt')
 })
+
+test('the first-run hint dismisses and quick scenarios drive the setup', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'phone', 'Phones do not load the sandbox header.')
+  await page.goto('/')
+  await page.getByRole('button', { name: 'I understand — continue' }).click({ force: true })
+  await page.getByRole('button', { name: 'Configure detonation' }).click({ force: true })
+
+  const hint = page.getByRole('note')
+  await expect(hint).toBeVisible()
+  await hint.getByRole('button', { name: 'Got it' }).click({ force: true })
+  await expect(hint).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Thermal pulse' }).click({ force: true })
+  await expect(page.locator('.scenario-readout')).toContainText('1.00 Mt')
+})

@@ -465,7 +465,7 @@ button:not(:disabled), summary, [role="button"] { cursor: pointer; }
 .timeline-fade { animation: moment-in 220ms ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
-  .guide-card, .compare-card, .model-drawer, .glossary-card, .ns-panel, .lesson-chip, .debrief-sheet, .city-card, .timeline-fade, .run-field.ready { animation: none; }
+  .guide-card, .compare-card, .model-drawer, .glossary-card, .ns-panel, .lesson-chip, .debrief-sheet, .city-card, .timeline-fade, .run-field.ready, .first-run-hint { animation: none; }
   .hud-tools, .experience-panel, .skip-link { transition: none; }
 }
 
@@ -536,6 +536,22 @@ input {
   padding: 14px 16px;
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.45);
 }
+
+.first-run-hint {
+  position: absolute;
+  right: 16px;
+  top: 58px;
+  z-index: 15;
+  width: min(280px, calc(100vw - 32px));
+  border: 1px solid rgb(245 158 11 / 35%);
+  background: rgb(20 22 26 / 96%);
+  padding: 10px 12px;
+  box-shadow: 0 14px 40px rgb(0 0 0 / 35%);
+  animation: panel-in 140ms ease-out;
+}
+.first-run-hint p { color: var(--color-body); font-size: 12px; line-height: 1.4; }
+.first-run-hint kbd { font: 10px var(--font-mono); border: 1px solid rgb(255 255 255 / 20%); padding: 0 4px; color: var(--color-signal-hot); }
+.first-run-hint button { margin-top: 8px; background: var(--color-signal); color: var(--color-ink); padding: 5px 10px; font-size: 12px; }
 
 .shortcut-scrim {
   position: fixed;
