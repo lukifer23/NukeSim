@@ -4,6 +4,10 @@ A walkable 3D city and an honest nuclear-effects library. Yield, height of burst
 
 NukeSim is an educational model. It is not for emergency planning or targeting. Effects are unclassified scaling laws — order-of-magnitude estimates that ignore detailed terrain shielding (except ridge line-of-sight), weather shear, and building-to-building shadowing. Cities are fictional. A nuclear effects calculator is not a nuclear weapon.
 
+![NukeSim: a 1 Mt surface burst over the fictional city of Port Meridian](docs/hero.jpg)
+
+**Live demo:** <https://lukifer23.github.io/NukeSim/> — built from `main` and deployed to GitHub Pages.
+
 ## The v0.3 learning loop
 
 1. Start a five-minute Academy mission covering cube-root scale, burst height, fallout, or prompt radiation.
@@ -107,6 +111,10 @@ docs/       model card, city notes, asset provenance
 ```
 
 The simulation uses one progressive **Setup** surface instead of competing workspace tabs. Environment controls stay available in the same sheet, collapsed until needed. Renderer quality may adapt before a run, then locks for that run so a comparison cannot change appearance midway through playback. Error boundaries isolate the field from the shell, a lost WebGL context surfaces a recoverable notice, and every asset — textures and fonts — is packaged locally, so the app makes no runtime CDN fetches. Texture and font sources are recorded in [`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md).
+
+## Contributing
+
+Issues and pull requests are welcome. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers setup, the gates CI runs, and the project conventions. Before changing any physics, read the model contract ([`docs/MODEL.md`](docs/MODEL.md)) — a formula change must update the model card and its tests in the same commit. Security reports: [`SECURITY.md`](SECURITY.md). Notable changes: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
