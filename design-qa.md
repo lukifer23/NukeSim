@@ -67,14 +67,15 @@ Five waves of visual, animation, physics, and feel work landed on top of the fid
 - **Review fixes.** Sky now clones three-stdlib's shared material for its PMREM probe; `startLaunch` bumps the field revision so a re-run resets the scene; shared scenarios persist a draft; the shortcut dialog manages focus; lazy chunks degrade in place.
 - **Bundle.** On-demand panels (model card, glossary, probe, compare) are lazy chunks, dropping the main bundle below the 100 KiB mark and restoring headroom for future work.
 - **Dedupe.** Report rings are looked up through `ringByPsi`/`ringById`; the fallout arrival/spread constants and the crater bowl/lip constants are declared once and injected into their GLSL copies so JS and shader cannot drift; the identical GLSL `hash` and value-noise helpers are shared snippets; debris idles out when paused.
-- **Accessibility & recovery.** A named `main` landmark, a polite live region for the field-phase caption, and a focus-trapped, `aria-modal` model card join the shortcut dialog's focus handling and the existing Axe checks.
+- **Accessibility & recovery.** A named `main` landmark, a polite live region for the field-phase caption, and a focus-trapped, `aria-modal` model card join the shortcut dialog's focus handling and the existing Axe checks. A "skip to setup controls" link bypasses the canvas for keyboard users.
 - **Reset.** `resetScenario` restores the free-play defaults in one click (hidden during a guided mission), invalidates any recorded run, and clears the comparison baseline.
+- **Controls & view state.** Sliders draw their filled progress so the current value reads at a glance; every overlay row and camera button shows its hotkey (B/T/R/F/L, 1/2/3) with `aria-keyshortcuts`; the header exposes a labeled **Shortcuts** control. The saved draft now also persists the overlay set and camera mode, so a reload resumes the exact view.
 
 ### Current verification
 
-- `npm run verify`: passed — 89 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
+- `npm run verify`: passed — 90 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
 - `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
-- Bundle: main 99.5 / 105 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
+- Bundle: main 100.1 / 105 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
 - Packaged visual assets: 4.97 / 6 MiB.
 
 ### Code health pass
