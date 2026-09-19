@@ -1,8 +1,25 @@
 {
   "name": "nukesim",
   "private": true,
-  "description": "Educational 3D nuclear-effects sandbox. Fictional cities, unclassified scaling laws.",
+  "description": "Educational 3D nuclear-effects sandbox. Fictional cities, unclassified scaling laws. Not for targeting or emergency planning.",
   "version": "0.3.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukifer23/NukeSim.git"
+  },
+  "homepage": "https://github.com/lukifer23/NukeSim#readme",
+  "keywords": [
+    "nuclear-effects",
+    "physics",
+    "simulation",
+    "education",
+    "threejs",
+    "react-three-fiber",
+    "webgl",
+    "vite",
+    "typescript"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

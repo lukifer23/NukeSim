@@ -36,10 +36,13 @@ npm run capture       # stage screenshots to artifacts/hitlist (dev server runni
 npm run preview
 ```
 
+Continuous integration runs lint, unit coverage, build, and the bundle/asset budgets on every push. The browser E2E and headed FPS gates (`npm run test:e2e`, `npm run test:perf`) run locally, where a real GPU is available.
+
 ## What you can change
 
 | Control | What it teaches |
 |---|---|
+| Quick scenarios | One-click presets (optimized airburst, surface fallout, thermal pulse) that pair yield, burst height, and fission to show how they trade off |
 | Yield (log slider, 0.1 kt–50 Mt) | Radius grows as the cube root, not linearly |
 | Height of burst | Mach stem vs local fallout (the physical fireball-touches-ground switch; visual footprint does not change it) |
 | Historical delivery context | Separate non-operational context module; the core simulation begins at the scenario |
@@ -49,7 +52,7 @@ npm run preview
 | City | Density, climate, and (on Kite Pass) a ridge that actually shadows |
 | Camera view | Field, Ground zero, and Cloud framing only — never a model result |
 
-Historical presets: Little Boy, Fat Man, Ivy King, Castle Bravo, Tsar Bomba.
+Historical presets: Little Boy, Fat Man, Ivy King, Castle Bravo, Tsar Bomba. **Reset setup** returns every control to its defaults.
 
 ## Keyboard
 
@@ -60,11 +63,11 @@ Historical presets: Little Boy, Fat Man, Ivy King, Castle Bravo, Tsar Bomba.
 | `1` / `2` / `3` | Field / Ground zero / Cloud camera |
 | `B` `T` `R` `F` `L` | Toggle blast, thermal, radiation, fallout, fireball overlays |
 | `K` | Skip the launch cinematic |
-| `?` | Open the in-app shortcut panel (also a `?` button in the header) |
+| `?` | Open the in-app shortcut panel (also a **Shortcuts** button in the header) |
 
 ## Session
 
-The last scenario setup is saved locally and restored on reload, so a refresh resumes your yield, burst height, environment, and city. The safety disclaimer is still shown before a run. The **Debrief** panel has a **Copy results** action that puts a plain-text summary and a shareable scenario link on the clipboard.
+The last scenario setup is saved locally and restored on reload, so a refresh resumes your yield, burst height, environment, city, visible overlays, and camera view. The safety disclaimer is still shown before a run. A one-time hint points new visitors at the **Shortcuts** panel, and **Reset setup** returns every control to its defaults. The **Debrief** panel has a **Copy results** action that puts a plain-text summary and a shareable scenario link on the clipboard.
 
 ## Audio
 
@@ -93,6 +96,8 @@ Vite 8 · React 19 · TypeScript · Three.js / React Three Fiber · @react-three
 
 ```
 src/sim     pure physics, no React, no Three
+src/data    cities, munitions, lessons, presets, model notes
+src/state   scenario store, local draft and UI preferences
 src/learn   pure mission evaluation and local progress contract
 src/city    deterministic generator
 src/scene   WebGL world
