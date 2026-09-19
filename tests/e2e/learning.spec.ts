@@ -39,7 +39,7 @@ test('running the field does not throw WebGL errors', async ({ page }, testInfo)
 
 test('header is docs-only; debrief keeps timeline and inspect on the field', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === 'phone', 'Phones do not load the 3D field.')
-  test.setTimeout(120_000)
+  test.setTimeout(process.env.CI ? 240_000 : 120_000)
   const browserErrors = collectBrowserErrors(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'I understand — continue' }).click({ force: true })
