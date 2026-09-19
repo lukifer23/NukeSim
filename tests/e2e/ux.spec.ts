@@ -31,3 +31,15 @@ test('a reload restores the last scenario setup', async ({ page }, testInfo) => 
   await page.reload()
   await expect(page.locator('.scenario-readout')).toContainText('1.00 Mt')
 })
+
+test('reset setup returns the scenario to the free-play defaults', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'phone', 'Phones do not load the sandbox header.')
+  await page.goto('/')
+  await page.getByRole('button', { name: 'I understand — continue' }).click({ force: true })
+  await page.getByRole('button', { name: 'Configure detonation' }).click({ force: true })
+  await page.getByRole('button', { name: '1 Mt', exact: true }).click({ force: true })
+  await expect(page.locator('.scenario-readout')).toContainText('1.00 Mt')
+
+  await page.getByRole('button', { name: 'Reset setup' }).click({ force: true })
+  await expect(page.locator('.scenario-readout')).toContainText('10 kt')
+})

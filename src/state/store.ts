@@ -144,6 +144,7 @@ type SimState = {
   setModelOpen: (open: boolean) => void
   loadSharedScenario: (scenario: SharedScenario) => void
   applyDraft: (draft: ScenarioDraft) => void
+  resetScenario: () => void
   setShowGhost: (v: boolean) => void
   setMuted: (v: boolean) => void
   setContextLost: (v: boolean) => void
@@ -251,6 +252,9 @@ const initialSlice = {
   visibilityKm: CITIES[0].visibilityKm,
 }
 
+const defaultOverlays: Record<OverlayKey, boolean> = { blast: true, thermal: false, radiation: false, fallout: true, fireball: true }
+const defaultTimeOfDay = 0.6
+
 export const useSim = create<SimState>((set, get) => ({
   accepted: false,
   workspace: 'explore',
@@ -262,12 +266,12 @@ export const useSim = create<SimState>((set, get) => ({
   city: initialCity,
   munitionId: initialMunition.id,
   ...initialSlice,
-  timeOfDay: 0.6,
+  timeOfDay: defaultTimeOfDay,
   reducedMotion: false,
   simTime: 0,
   playing: false,
   speed: 1,
-  overlays: { blast: true, thermal: false, radiation: false, fallout: true, fireball: true },
+  overlays: { ...defaultOverlays },
   probe: null,
   shelter: 'open',
   hoursOut: 24,
@@ -579,6 +583,29 @@ export const useSim = create<SimState>((set, get) => ({
       impactOffset: { ...city.gz },
     })
     set({ report: computeEffects(inputFrom(get())) })
+  },
+  resetScenario: () => {
+    const city = cityFor(CITIES[0].id)
+    set({
+      cityId: CITIES[0].id,
+      city,
+      munitionId: initialMunition.id,
+      ...initialSlice,
+      timeOfDay: defaultTimeOfDay,
+      impactOffset: { ...city.gz },
+      overlays: { ...defaultOverlays },
+      probe: null,
+      comparison: null,
+      ghost: null,
+      hasRun: false,
+      playing: false,
+      simTime: 0,
+      phase: 'bench',
+      runRevision: get().runRevision + 1,
+      qualityLocked: false,
+    })
+    set({ report: computeEffects(inputFrom(get())) })
+    persistDraft(get())
   },
   scenario: () => inputFrom(get()),
   hobResolved: () => resolveHob(get().yieldKt, get().hobMode, get().customHobM, get().visibilityKm),

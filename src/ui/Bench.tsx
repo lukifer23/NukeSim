@@ -207,7 +207,7 @@ export function Bench() {
           </button>
           <ScenarioShare />
         </div>
-        <div className="mt-2 flex gap-3 font-mono text-[10px] text-mute">
+        <div className="mt-2 flex items-center gap-3 font-mono text-[10px] text-mute">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={s.showGhost} onChange={(e) => s.setShowGhost(e.target.checked)} />
             last run
@@ -216,6 +216,15 @@ export function Bench() {
             <input type="checkbox" checked={s.muted} onChange={(e) => s.setMuted(e.target.checked)} />
             {s.muted ? <VolumeX aria-hidden="true" size={14} /> : <Volume2 aria-hidden="true" size={14} />} mute
           </label>
+          {!s.mission && (
+            <button
+              type="button"
+              className="ml-auto uppercase tracking-wider hover:text-signal-hot"
+              onClick={() => s.resetScenario()}
+            >
+              Reset setup
+            </button>
+          )}
         </div>
         <button
           className="compare-action mt-2 flex min-h-10 w-full items-center justify-center gap-2 border border-white/15 px-3 py-2 text-[12px] text-body"
