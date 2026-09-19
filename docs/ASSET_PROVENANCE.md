@@ -19,3 +19,7 @@ License: [CC0](https://polyhaven.com/license). Original 1K JPEG maps are used wi
 | `concrete-floor-arm.jpg` | [Concrete Floor 01](https://polyhaven.com/a/concrete_floor_01) | Rob Tuytel | `44e3a0d18db295998c8af56ecc80095821e719e134974609aa92e5436709dabd` |
 
 Combined packaged size is approximately 5 MiB, below the enforced 6 MiB initial texture budget. `npm run check:assets` measures every file under `public/assets` and fails the release gate when that ceiling is exceeded.
+
+## IBM Plex fonts (SIL Open Font License 1.1)
+
+Self-hosted under `public/fonts` so the app performs no runtime CDN fetches. Latin subsets of IBM Plex Sans (400/500/600/700) and IBM Plex Mono (400/500/600), pulled from the Google Fonts CSS API and written unmodified as `.woff2`. Total ~196 KiB; fonts are excluded from the visual-texture budget above.

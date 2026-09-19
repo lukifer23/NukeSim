@@ -1,5 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { useSim } from '../state/store'
+import { blip } from '../audio/engine'
 
 /**
  * Places a probe where the pointer actually meets a world surface. The old
@@ -15,6 +16,7 @@ export function useProbePicker(): { onPointerUp?: (e: ThreeEvent<PointerEvent>) 
     onPointerUp: (e) => {
       if (e.delta > 6) return
       e.stopPropagation()
+      blip()
       setProbe(e.point.x - offset.x, e.point.z - offset.z)
     },
   }

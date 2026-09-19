@@ -3,10 +3,10 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
-import { useSim } from '../state/store'
+import { useSim, isLiveField } from '../state/store'
 import { shockRadiusAtTimeM } from '../sim'
 import { getRenderTime } from './runtimeClock'
-import { CITY_CAMERA_FRAMES, cloudCameraFrame, detonationCameraFrame } from './cameraFrame'
+import { CITY_CAMERA_FRAMES, CAMERA_FOV_DEG, cloudCameraFrame, detonationCameraFrame } from './cameraFrame'
 import { cloudHeightAtTimeM } from '../sim/cloud'
 
 const scratch = new THREE.Vector3()
@@ -45,7 +45,7 @@ export function Cameras() {
       return
     }
     const t = getRenderTime()
-    const fov = (camera as THREE.PerspectiveCamera).fov || 46
+    const fov = (camera as THREE.PerspectiveCamera).fov || CAMERA_FOV_DEG
     const aspect = size.width / Math.max(size.height, 1)
     if (lastMode.current !== s.cameraMode) {
       lastMode.current = s.cameraMode
@@ -58,7 +58,7 @@ export function Cameras() {
       cinema.current = false
       if (controls.current) controls.current.enabled = true
     }
-    if (s.phase === 'detonate' && cinema.current && s.cameraMode === 'field' && !s.reducedMotion && t < 28) {
+    if (s.phase === 'detonate' && cinema.current && s.cameraMode === 'field' && !s.reducedMotion && t < 40) {
       if (controls.current) controls.current.enabled = false
       const hob = s.hobResolved()
       const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
@@ -67,36 +67,36 @@ export function Cameras() {
       const cloud = cloudCameraFrame(cloudH, fov, aspect)
       const uFire = Math.min(1, t / 12)
       const easedFire = uFire * uFire * (3 - 2 * uFire)
-      const uCloud = t <= 12 ? 0 : Math.min(1, (t - 12) / 15)
+      const uCloud = t <= 18 ? 0 : Math.min(1, (t - 18) / 16)
       const easedCloud = uCloud * uCloud * (3 - 2 * uCloud)
       const dist = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(fire.startDistance, Math.max(fire.endDistance, shock * 1.35), easedFire),
-        Math.min(cloud.endDistance, frame.pos[0] * 1.35),
+        cloud.endDistance,
         easedCloud,
       )
       const height = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(fire.cameraHeight, fire.cameraHeight + fire.verticalSpan * 0.12, easedFire),
-        Math.min(cloud.cameraHeight, frame.pos[1] * 1.7),
+        cloud.cameraHeight,
         easedCloud,
       )
-      const lookY = THREE.MathUtils.lerp(fire.lookY, Math.min(cloud.lookY, cloudH * 0.32), easedCloud)
+      const lookY = THREE.MathUtils.lerp(fire.lookY, cloud.lookY, easedCloud)
       scratch.set(s.impactOffset.x + dist * 0.72, height, s.impactOffset.z + dist * 0.78)
       camera.position.lerp(scratch, 0.1)
       look.set(s.impactOffset.x, lookY, s.impactOffset.z)
       camera.lookAt(look)
       if (controls.current) controls.current.target.copy(look)
-      if (t >= 27.5) cinema.current = false
+      if (t >= 39.5) cinema.current = false
       return
     }
     if (cinema.current && (t >= 28 || s.phase !== 'detonate')) cinema.current = false
-    if (changingView.current && (s.phase === 'detonate' || s.phase === 'explore' || s.phase === 'debrief')) {
+    if (changingView.current && isLiveField(s.phase)) {
       if (controls.current) controls.current.enabled = false
       if (s.cameraMode === 'cloud') {
         const cloudH = cloudHeightAtTimeM(s.report.cloud, t)
         const cloud = cloudCameraFrame(cloudH, fov, aspect)
-        const dist = Math.min(cloud.endDistance * 1.6, 32000)
-        scratch.set(s.impactOffset.x + dist * 0.72, Math.max(420, cloudH * 0.38), s.impactOffset.z + dist * 0.78)
-        look.set(s.impactOffset.x, cloudH * 0.42, s.impactOffset.z)
+        const dist = cloud.endDistance
+        scratch.set(s.impactOffset.x + dist * 0.72, Math.max(420, cloud.cameraHeight), s.impactOffset.z + dist * 0.78)
+        look.set(s.impactOffset.x, cloud.lookY, s.impactOffset.z)
       } else if (s.cameraMode === 'ground-zero') {
         const r = Math.max(s.report.fireballMaxRadiusM * 2.8, 480)
         scratch.set(s.impactOffset.x + r * 0.72, Math.max(120, r * 0.22), s.impactOffset.z + r * 0.78)

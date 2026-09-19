@@ -13,6 +13,7 @@ import { Detonation } from './Detonation'
 import { Cameras } from './Cameras'
 import { DistrictMarkers } from './DistrictMarkers'
 import { Atmosphere } from './Sky'
+import { CAMERA_FAR } from './cameraFrame'
 import { useSim } from '../state/store'
 
 export function World() {
@@ -20,7 +21,7 @@ export function World() {
   const cityId = useSim((s) => s.cityId)
 
   useEffect(() => {
-    camera.far = 60000
+    camera.far = CAMERA_FAR
     camera.updateProjectionMatrix()
   }, [camera])
 

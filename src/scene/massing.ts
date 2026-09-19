@@ -117,22 +117,3 @@ export function topFootprint(geo: THREE.BufferGeometry): number {
   }
   return r
 }
-
-/** Inset vertices above `yStart` (−0.5…0.5) by `inset` toward the Y axis. */
-export function taperedBlock(inset: number, yStart: number): THREE.BufferGeometry {
-  const g = new THREE.BoxGeometry(1, 1, 1, 1, 6, 1)
-  const pos = g.attributes.position
-  const top = 0.5
-  const span = Math.max(0.08, top - yStart)
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i)
-    if (y <= yStart) continue
-    const t = Math.min(1, (y - yStart) / span)
-    const s = 1 - inset * t
-    pos.setX(i, pos.getX(i) * s)
-    pos.setZ(i, pos.getZ(i) * s)
-  }
-  pos.needsUpdate = true
-  g.computeVertexNormals()
-  return g
-}

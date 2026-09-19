@@ -18,6 +18,7 @@ import { Debrief } from './Debrief'
 import type { Workspace } from '../state/store'
 import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Search, Telescope } from 'lucide-react'
 import type { CameraMode } from '../state/store'
+import { useHotkeys } from './useHotkeys'
 
 type FieldPanel = 'setup' | 'experience' | 'inspector' | null
 
@@ -33,14 +34,16 @@ export function Hud() {
   const mission = useSim((s) => s.mission)
   const playing = useSim((s) => s.playing)
   const simTime = useSim((s) => s.simTime)
+  const contextLost = useSim((s) => s.contextLost)
   const [panel, setPanel] = useState<FieldPanel>('setup')
   const blast = report.rings.find((r) => r.psi === 5)
   const fieldTag = overlays.blast && blast ? blast.confidence : report.fireballTouchesGround ? 'heuristic' : 'interpolated'
-  const cinemaDone = simTime >= 28 || !playing
+  const cinemaDone = simTime >= 40 || !playing
   const watching = phase === 'detonate' && !cinemaDone
   const inspectReady = phase === 'explore' || phase === 'debrief' || (phase === 'detonate' && cinemaDone)
   const fieldPhase = phase === 'bench' || phase === 'detonate' || phase === 'explore' || phase === 'debrief'
   const debriefing = phase === 'debrief'
+  useHotkeys()
 
   useEffect(() => {
     if (phase === 'bench') {
@@ -96,9 +99,9 @@ export function Hud() {
             <ToolDock panel={panel} workspace={workspace} onChange={setPanel} debriefing={debriefing} />
           )}
           {fieldPhase && inspectReady && !debriefing && <ViewDock />}
-          {fieldPhase && panel === 'inspector' && inspectReady && (
-            <div className="right-stack pointer-events-none absolute right-4 top-4">
-              <Probe />
+          {fieldPhase && inspectReady && (
+            <div className="right-stack pointer-events-none absolute right-4 top-16">
+              {panel === 'inspector' && <Probe />}
               <FieldLegend />
             </div>
           )}
@@ -120,6 +123,17 @@ export function Hud() {
       </div>
       <Glossary />
       <ModelDrawer />
+      {contextLost && (
+        <div className="pointer-events-auto absolute inset-x-0 top-16 z-30 flex justify-center px-4">
+          <div className="ctx-lost" role="status">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-signal">Graphics context lost</p>
+            <p className="mt-1 text-sm text-body">The GPU dropped the 3D view. It restores automatically; reload if it stays blank.</p>
+            <button className="mt-3 border border-white/15 px-3 py-1.5 text-sm text-body" onClick={() => window.location.reload()}>
+              Reload field
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

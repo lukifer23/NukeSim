@@ -30,3 +30,9 @@ export function lineOfSightClear(
 export function ridgeBlastFactor(clear: boolean): number {
   return clear ? 1 : 0.45
 }
+
+/** Fraction of thermal / prompt dose reaching a ridge-shadowed point. */
+export const RIDGE_SHADOW_FACTOR = 0.02
+
+/** Minimum burst altitude used when tracing line of sight to a ridge. */
+export const MIN_LOS_ORIGIN_M = 12

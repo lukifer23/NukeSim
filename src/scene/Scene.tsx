@@ -3,10 +3,12 @@ import { Suspense, useEffect, useMemo } from 'react'
 import { AdaptiveDpr, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import { World } from './World'
+import { Post } from './Post'
 import { Clock } from './Clock'
 import { useSim } from '../state/store'
 import { getRenderTime } from './runtimeClock'
 import { atmosphereLook } from './atmosphere'
+import { CAMERA_FAR, CAMERA_FOV_DEG, CITY_CAMERA_FRAMES } from './cameraFrame'
 import { thermalPulseDurationS } from '../sim/fireball'
 
 export function Scene() {
@@ -17,13 +19,15 @@ export function Scene() {
       fallback={<WebglFallback />}
       aria-label="Interactive three dimensional educational city view"
       shadows="percentage"
-      camera={{ position: [1680, 420, -1980], fov: 46, near: 1.2, far: 60000 }}
+      camera={{ position: CITY_CAMERA_FRAMES.harbor.pos, fov: CAMERA_FOV_DEG, near: 1.2, far: CAMERA_FAR }}
       dpr={[1, 1.75]}
       gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
     >
       <Suspense fallback={null}>
         <QualityController />
+        <ContextGuard />
         <World />
+        <Post />
         <Clock />
         <ExposureController />
       </Suspense>
@@ -49,6 +53,30 @@ function QualityController() {
       />
     </>
   )
+}
+
+/**
+ * Surfaces GPU context loss to the HUD. Three.js already prevents the default
+ * and re-initializes on restore; this only mirrors the state for the user.
+ */
+function ContextGuard() {
+  const { gl } = useThree()
+  const setContextLost = useSim((s) => s.setContextLost)
+  useEffect(() => {
+    const canvas = gl.domElement
+    const onLost = (event: Event) => {
+      event.preventDefault()
+      setContextLost(true)
+    }
+    const onRestored = () => setContextLost(false)
+    canvas.addEventListener('webglcontextlost', onLost, false)
+    canvas.addEventListener('webglcontextrestored', onRestored, false)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [gl, setContextLost])
+  return null
 }
 
 function canRenderWebgl(): boolean {
@@ -81,8 +109,8 @@ function ExposureController() {
     const s = useSim.getState()
     const time = getRenderTime()
     const rest = atmosphereLook(s.timeOfDay, s.city.biome).exposure
-    const flash = s.phase === 'detonate' ? Math.exp(-time / Math.max(0.18, thermalPulseDurationS(s.yieldKt) * 0.12)) : 0
-    gl.toneMappingExposure = THREE.MathUtils.lerp(gl.toneMappingExposure, rest + Math.min(0.22, flash * 0.22), 0.12)
+    const flash = s.phase === 'detonate' && !s.reducedMotion ? Math.exp(-time / Math.max(0.18, thermalPulseDurationS(s.yieldKt) * 0.12)) : 0
+    gl.toneMappingExposure = THREE.MathUtils.lerp(gl.toneMappingExposure, rest + Math.min(0.9, flash * 0.9), 0.14)
   })
   return null
 }

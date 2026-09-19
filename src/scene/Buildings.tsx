@@ -1,23 +1,23 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { useSim } from '../state/store'
+import { useSim, isLiveField } from '../state/store'
 import { BuildingClass, DamageState } from '../sim/types'
 import {
-  arrivalTimeS,
-  damageFromOverpressure,
   fireballMaxRadiusM,
-  overpressureAtRangePsi,
+  isSurfaceBurst,
   shockRadiusAtTimeM,
 } from '../sim'
 import type { Building } from '../city/types'
 import { getRenderTime } from './runtimeClock'
-import { damagePose } from './damagePose'
+import { damageAmount, damagePose, damageProgress } from './damagePose'
 import { makeFacadeMaterial, styleId } from './shaders/facadeMat'
 import { buildingAtlas } from './windowAtlas'
 import { ignitesAt, ignitionSampleFromStore, resetIgnitionCache } from './ignitionField'
 import { massingGeometry } from './massing'
+import { dummy, hidden } from './instancing'
 import { buildingVisualEvent } from './buildingVisualEvent'
+import { useProbePicker } from './probePicker'
 
 const CLASS_COLOR: Record<string, string> = {
   [BuildingClass.Wood]: '#b48e67',
@@ -50,20 +50,6 @@ function wallColor(cls: string, biomeId: string): string {
   return CLASS_COLOR[cls] ?? '#aaa69e'
 }
 
-function dummy() {
-  return new THREE.Object3D()
-}
-
-function hidden(tmp: THREE.Object3D) {
-  // Keep hidden instances non-degenerate and outside every shadow frustum.
-  // Zero or paper-thin matrices can create enormous triangular shadow acne.
-  tmp.position.set(0, -10000, 0)
-  tmp.rotation.set(0, 0, 0)
-  tmp.scale.setScalar(0.001)
-  tmp.updateMatrix()
-  return tmp.matrix
-}
-
 export function Buildings() {
   const city = useSim((s) => s.city)
   const groups = useMemo(() => {
@@ -82,7 +68,7 @@ export function Buildings() {
       {[...groups.entries()].map(([cls, list]) => (
         <group key={cls}>
           <BuildingLayer list={list} />
-          <PodiumLayer list={list.filter((b) => b.podiumH > 4)} />
+          <PodiumLayer list={list.filter(hasPodium)} />
           <RoofLayer list={list} />
           <RubbleLayer list={list} />
         </group>
@@ -93,6 +79,21 @@ export function Buildings() {
 
 /** One window cell per ~3.4 m keeps window proportions square on every face. */
 const WINDOW_SPACING_M = 3.4
+
+/** Extra margin past the shock front before a building is culled from updates. */
+const SHOCK_CULL_M = 90
+
+/** Podiums only read as a distinct base above this height. */
+const PODIUM_MIN_H = 4
+
+function hasPodium(b: Building): boolean {
+  return b.podiumH > PODIUM_MIN_H
+}
+
+/** Towers inset their footprint when they sit on a podium. */
+function towerFootprint(b: Building): { w: number; d: number } {
+  return hasPodium(b) ? { w: b.w * 0.68, d: b.d * 0.68 } : { w: b.w, d: b.d }
+}
 
 function bindFacade(mesh: THREE.InstancedMesh, list: Building[], mode: 'tower' | 'podium') {
   const floors = new Float32Array(list.length)
@@ -111,6 +112,8 @@ function bindFacade(mesh: THREE.InstancedMesh, list: Building[], mode: 'tower' |
   mesh.geometry.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seed, 1))
   mesh.geometry.setAttribute('aCols', new THREE.InstancedBufferAttribute(cols, 2))
   mesh.geometry.setAttribute('aStyle', new THREE.InstancedBufferAttribute(style, 1))
+  // Window shatter is driven per instance and grows as the shock passes.
+  mesh.geometry.setAttribute('aDamage', new THREE.InstancedBufferAttribute(new Float32Array(list.length), 1))
 }
 
 function BuildingLayer({ list }: { list: Building[] }) {
@@ -118,6 +121,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
   const cls = list[0]?.class ?? BuildingClass.Masonry
   const tmp = useMemo(() => dummy(), [])
   const cTmp = useMemo(() => new THREE.Color(), [])
+  const cDamage = useMemo(() => new THREE.Color(), [])
   const ignite = useMemo(() => new THREE.Color('#c44b2b'), [])
   const city = useSim((s) => s.city)
   const base = useMemo(() => new THREE.Color(wallColor(cls, city.biome.id)), [cls, city.biome.id])
@@ -136,7 +140,9 @@ function BuildingLayer({ list }: { list: Building[] }) {
   )
   const lastK = useRef(new Float32Array(list.length))
   const done = useRef(new Uint8Array(list.length))
+  const dmg = useRef<THREE.InstancedBufferAttribute | null>(null)
   const fieldSig = useSim((s) => s.runRevision)
+  const picker = useProbePicker()
 
   useLayoutEffect(() => {
     const mesh = ref.current
@@ -145,19 +151,23 @@ function BuildingLayer({ list }: { list: Building[] }) {
     done.current = new Uint8Array(list.length)
     resetIgnitionCache(String(fieldSig))
     bindFacade(mesh, list, 'tower')
+    dmg.current = mesh.geometry.getAttribute('aDamage') as THREE.InstancedBufferAttribute
     if (!mesh.instanceColor) {
       mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(list.length * 3), 3)
     }
     list.forEach((b, i) => {
       const y = city.heightAt(b.x, b.z)
-      const towerW = b.podiumH > 4 ? b.w * 0.68 : b.w
-      const towerD = b.podiumH > 4 ? b.d * 0.68 : b.d
+      const { w: towerW, d: towerD } = towerFootprint(b)
       tmp.position.set(b.x, y + b.h / 2, b.z)
       tmp.rotation.set(0, b.yaw, 0)
       tmp.scale.set(towerW, b.h, towerD)
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
-      const tint = base.clone().offsetHSL((b.seed % 1) * 0.04 - 0.02, 0, ((b.seed * 0.37) % 1) * 0.08 - 0.04)
+      const tint = base.clone().offsetHSL(
+        ((b.seed * 7.3) % 1) * 0.08 - 0.04,
+        ((b.seed * 3.1) % 1) * 0.12 - 0.05,
+        ((b.seed * 0.37) % 1) * 0.15 - 0.075,
+      )
       mesh.setColorAt(i, tint)
     })
     mesh.count = list.length
@@ -171,11 +181,11 @@ function BuildingLayer({ list }: { list: Building[] }) {
     const s = useSim.getState()
     const dayU = mat.userData.uDay as { value: number } | undefined
     if (dayU) dayU.value = s.timeOfDay
-    if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') return
+    if (!isLiveField(s.phase)) return
     const hob = s.hobResolved()
     const t = getRenderTime()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
-    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
     const ox = s.impactOffset.x
     const oz = s.impactOffset.z
     const sample = ignitionSampleFromStore(s)
@@ -183,7 +193,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
     list.forEach((b, i) => {
       if (done.current[i]) return
       const r = Math.hypot(b.x - ox, b.z - oz)
-      if (r > shock + 90 && lastK.current[i] === 0) return
+      if (r > shock + SHOCK_CULL_M && lastK.current[i] === 0) return
       const y0 = city.heightAt(b.x, b.z)
       const event = buildingVisualEvent(b, {
         yieldKt: s.yieldKt,
@@ -192,20 +202,27 @@ function BuildingLayer({ list }: { list: Building[] }) {
         impactX: ox,
         impactZ: oz,
         ignites: (building) => ignitesAt(building.x, building.z, y0 + building.h * 0.5, building.class, sample),
-      })
+      }, r)
       const damage = event.damage
       const arrival = event.arrivalS
-      const k = damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - arrival, 0, 0.55)
+      const k = damageProgress(damage, event.seed, t - arrival)
       lastK.current[i] = k
-      const pose = damagePose(b, damage, k)
+      const lean = r > 1 ? { x: (b.x - ox) / r, z: (b.z - oz) / r } : undefined
+      const pose = damagePose(b, damage, k, lean)
+      if (dmg.current) dmg.current.array[i] = damageAmount(damage) * k
+      // Damage colour arrives with the shock, so a doomed building is not dark
+      // before the blast wave touches it.
+      const colorK = damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - arrival, 0, 0.45)
+      const igniteK = THREE.MathUtils.smoothstep(t - arrival, 0, 1.6)
       cTmp.copy(base)
-      if (damage === DamageState.Vaporized) cTmp.set('#1a120c')
-      else if (damage === DamageState.Collapsed) cTmp.set('#2a2018')
-      else if (damage === DamageState.Severe) cTmp.offsetHSL(0, -0.12, -0.18)
-      else if (damage === DamageState.Moderate || damage === DamageState.Glass) cTmp.offsetHSL(0.02, -0.08, -0.1)
-      if (event.ignites && pose.scaleY > 0.2) cTmp.lerp(ignite, 0.4)
-      const towerW = b.podiumH > 4 ? b.w * 0.68 : b.w
-      const towerD = b.podiumH > 4 ? b.d * 0.68 : b.d
+      cDamage.copy(base)
+      if (damage === DamageState.Vaporized) cDamage.set('#1a120c')
+      else if (damage === DamageState.Collapsed) cDamage.set('#2a2018')
+      else if (damage === DamageState.Severe) cDamage.offsetHSL(0, -0.12, -0.18)
+      else if (damage === DamageState.Moderate || damage === DamageState.Glass) cDamage.offsetHSL(0.02, -0.08, -0.1)
+      cTmp.lerp(cDamage, colorK)
+      if (event.ignites && pose.scaleY > 0.2) cTmp.lerp(ignite, 0.4 * igniteK)
+      const { w: towerW, d: towerD } = towerFootprint(b)
       tmp.position.set(b.x, y0 + (b.h * pose.scaleY) / 2 - pose.sunk, b.z)
       tmp.rotation.set(pose.tiltX, b.yaw, pose.tiltZ)
       tmp.scale.set(towerW * pose.scaleX, b.h * pose.scaleY, towerD * pose.scaleZ)
@@ -213,15 +230,16 @@ function BuildingLayer({ list }: { list: Building[] }) {
       mesh.setMatrixAt(i, tmp.matrix)
       mesh.setColorAt(i, cTmp)
       wrote = true
-      if (k >= 1 || (k === 0 && r + 90 < shock)) done.current[i] = 1
+      if (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock)) done.current[i] = 1
     })
     if (wrote) {
       mesh.instanceMatrix.needsUpdate = true
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+      if (dmg.current) dmg.current.needsUpdate = true
     }
   })
 
-  return <instancedMesh ref={ref} args={[geo, mat, list.length]} material={mat} castShadow receiveShadow />
+  return <instancedMesh ref={ref} args={[geo, mat, list.length]} material={mat} castShadow receiveShadow {...picker} />
 }
 
 function RubbleLayer({ list }: { list: Building[] }) {
@@ -246,17 +264,17 @@ function RubbleLayer({ list }: { list: Building[] }) {
     const mesh = ref.current
     if (!mesh) return
     const s = useSim.getState()
-    if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') return
+    if (!isLiveField(s.phase)) return
     const t = getRenderTime()
     const hob = s.hobResolved()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
-    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
     const sample = ignitionSampleFromStore(s)
     let wrote = false
     list.forEach((b, buildingIndex) => {
       if (done.current[buildingIndex]) return
       const range = Math.hypot(b.x - s.impactOffset.x, b.z - s.impactOffset.z)
-      if (range > shock + 90) return
+      if (range > shock + SHOCK_CULL_M) return
       const y0 = city.heightAt(b.x, b.z)
       const event = buildingVisualEvent(b, {
         yieldKt: s.yieldKt,
@@ -265,18 +283,20 @@ function RubbleLayer({ list }: { list: Building[] }) {
         impactX: s.impactOffset.x,
         impactZ: s.impactOffset.z,
         ignites: (building) => ignitesAt(building.x, building.z, y0 + building.h * 0.5, building.class, sample),
-      })
-      const k = event.damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - event.arrivalS, 0, 0.55)
+      }, range)
+      const k = damageProgress(event.damage, event.seed, t - event.arrivalS)
       const rubble = event.damage === DamageState.Collapsed || event.damage === DamageState.Vaporized
       const severe = event.damage === DamageState.Severe
       const visible = (rubble && k >= 0.58) || (severe && k >= 0.72)
+      // Debris is thrown outward from ground zero, then scattered by seed.
+      const outward = Math.atan2(b.z - s.impactOffset.z, b.x - s.impactOffset.x)
       for (let fragment = 0; fragment < fragmentsPerBuilding; fragment++) {
         const index = buildingIndex * fragmentsPerBuilding + fragment
         if (!visible || (severe && fragment > 1)) {
           mesh.setMatrixAt(index, hidden(tmp))
           continue
         }
-        const angle = b.seed * 31.7 + fragment * 1.73
+        const angle = outward + (((b.seed * 31.7) % 1) - 0.5) * 1.4 + fragment * 1.73
         const spread = rubble ? 0.12 + fragment * 0.045 : 0.08
         const fw = Math.max(0.8, b.w * (0.045 + fragment * 0.006))
         const fd = Math.max(0.8, b.d * (0.04 + fragment * 0.005))
@@ -290,7 +310,7 @@ function RubbleLayer({ list }: { list: Building[] }) {
         mesh.setColorAt(index, color)
       }
       wrote = true
-      if (k >= 1 || (k === 0 && range + 90 < shock)) done.current[buildingIndex] = 1
+      if (k >= 1 || (k === 0 && range + SHOCK_CULL_M < shock)) done.current[buildingIndex] = 1
     })
     if (wrote) {
       mesh.instanceMatrix.needsUpdate = true
@@ -312,6 +332,7 @@ function PodiumLayer({ list }: { list: Building[] }) {
   const tmp = useMemo(() => dummy(), [])
   const city = useSim((s) => s.city)
   const done = useRef(new Uint8Array(list.length))
+  const dmg = useRef<THREE.InstancedBufferAttribute | null>(null)
   const fieldSig = useSim((s) => s.runRevision)
   const atlas = useMemo(() => buildingAtlas(cls, city.biome.id), [cls, city.biome.id])
   const mat = useMemo(
@@ -319,12 +340,14 @@ function PodiumLayer({ list }: { list: Building[] }) {
     [atlas],
   )
   const base = useMemo(() => new THREE.Color(wallColor(cls, city.biome.id)).multiplyScalar(0.85), [cls, city.biome.id])
+  const picker = useProbePicker()
 
   useLayoutEffect(() => {
     const mesh = ref.current
     if (!mesh) return
     done.current = new Uint8Array(list.length)
     bindFacade(mesh, list, 'podium')
+    dmg.current = mesh.geometry.getAttribute('aDamage') as THREE.InstancedBufferAttribute
     if (!mesh.instanceColor) mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(list.length * 3), 3)
     list.forEach((b, i) => {
       const y = city.heightAt(b.x, b.z)
@@ -345,22 +368,29 @@ function PodiumLayer({ list }: { list: Building[] }) {
     const s = useSim.getState()
     const dayU = mat.userData.uDay as { value: number } | undefined
     if (dayU) dayU.value = s.timeOfDay
-    if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') return
+    if (!isLiveField(s.phase)) return
     const hob = s.hobResolved()
     const t = getRenderTime()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
-    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
     let wrote = false
     list.forEach((b, i) => {
       if (done.current[i]) return
       const r = Math.hypot(b.x - s.impactOffset.x, b.z - s.impactOffset.z)
-      if (r > shock + 80) return
+      if (r > shock + SHOCK_CULL_M) return
       const y0 = city.heightAt(b.x, b.z)
-      const psi = overpressureAtRangePsi(s.yieldKt, hob, r)
-      const damage = damageFromOverpressure(b.class, psi, r < fb)
-      const arrival = arrivalTimeS(s.yieldKt, hob, r)
-      const k = damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - arrival, 0, 0.55)
-      const pose = damagePose(b, damage, k)
+      const event = buildingVisualEvent(b, {
+        yieldKt: s.yieldKt,
+        hobM: hob,
+        fireballRadiusM: fb,
+        impactX: s.impactOffset.x,
+        impactZ: s.impactOffset.z,
+      }, r)
+      const damage = event.damage
+      const k = damageProgress(damage, event.seed, t - event.arrivalS)
+      const lean = r > 1 ? { x: (b.x - s.impactOffset.x) / r, z: (b.z - s.impactOffset.z) / r } : undefined
+      const pose = damagePose(b, damage, k, lean)
+      if (dmg.current) dmg.current.array[i] = damageAmount(damage) * k
       tmp.position.set(b.x, y0 + (b.podiumH * pose.scaleY) / 2 - pose.sunk * 0.4, b.z)
       tmp.rotation.set(pose.tiltX * 0.4, b.yaw, pose.tiltZ * 0.4)
       // A collapsed podium must leave the scene with its tower. Keeping a
@@ -370,14 +400,17 @@ function PodiumLayer({ list }: { list: Building[] }) {
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
       wrote = true
-      if (k >= 1 || (k === 0 && r + 80 < shock)) done.current[i] = 1
+      if (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock)) done.current[i] = 1
     })
-    if (wrote) mesh.instanceMatrix.needsUpdate = true
+    if (wrote) {
+      mesh.instanceMatrix.needsUpdate = true
+      if (dmg.current) dmg.current.needsUpdate = true
+    }
   })
 
   if (list.length === 0) return null
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, list.length]} material={mat} castShadow receiveShadow>
+    <instancedMesh ref={ref} args={[undefined, undefined, list.length]} material={mat} castShadow receiveShadow {...picker}>
       <boxGeometry args={[1, 1, 1]} />
     </instancedMesh>
   )
@@ -398,10 +431,10 @@ function RoofLayer({ list }: { list: Building[] }) {
 
   const writeRoofs = useCallback((t: number, force: boolean) => {
     const s = useSim.getState()
-    const live = s.phase === 'detonate' || s.phase === 'explore' || s.phase === 'debrief'
+    const live = isLiveField(s.phase)
     const hob = s.hobResolved()
     const shock = live ? shockRadiusAtTimeM(s.yieldKt, hob, t) : 0
-    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
     const ox = s.impactOffset.x
     const oz = s.impactOffset.z
     list.forEach((b, i) => {
@@ -411,17 +444,23 @@ function RoofLayer({ list }: { list: Building[] }) {
       let k = 0
       let damage: DamageState = DamageState.Intact
       if (live) {
-        const psi = overpressureAtRangePsi(s.yieldKt, hob, r)
-        damage = damageFromOverpressure(b.class, psi, r < fb)
-        k = damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - arrivalTimeS(s.yieldKt, hob, r), 0, 0.55)
+        const event = buildingVisualEvent(b, {
+          yieldKt: s.yieldKt,
+          hobM: hob,
+          fireballRadiusM: fb,
+          impactX: ox,
+          impactZ: oz,
+        }, r)
+        damage = event.damage
+        k = damageProgress(damage, event.seed, t - event.arrivalS)
       }
-      if (!force && last.current[i] === k && r > shock + 90) return
+      if (!force && last.current[i] === k && r > shock + SHOCK_CULL_M) return
       last.current[i] = k
-      if (live && (k >= 1 || (k === 0 && r + 90 < shock))) done.current[i] = 1
-      const pose = damagePose(b, damage, k)
+      if (live && (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock))) done.current[i] = 1
+      const lean = live && r > 1 ? { x: (b.x - ox) / r, z: (b.z - oz) / r } : undefined
+      const pose = damagePose(b, damage, k, lean)
       const hide = pose.scaleY < 0.08
-      const tw = b.podiumH > 4 ? b.w * 0.68 : b.w
-      const td = b.podiumH > 4 ? b.d * 0.68 : b.d
+      const { w: tw, d: td } = towerFootprint(b)
       if (b.variant === 'house') {
         if (gables.current) {
           tmp.position.set(b.x, y0 + b.h * pose.scaleY + 1.6 - pose.sunk, b.z)
@@ -469,7 +508,7 @@ function RoofLayer({ list }: { list: Building[] }) {
 
   useFrame(() => {
     const s = useSim.getState()
-    if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') return
+    if (!isLiveField(s.phase)) return
     writeRoofs(getRenderTime(), false)
   })
 

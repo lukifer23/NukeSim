@@ -4,11 +4,6 @@ import { lineOfSightClear } from '../sim/los'
 import { District, type Building, type GeneratedCity, type Landmark, type Road } from './types'
 import { fbm, rng } from './noise'
 
-export const PRIMARY = 160
-export const SECONDARY = 80
-export const PRIMARY_W = 22
-export const SECONDARY_W = 14
-
 type Street = { pos: number; w: number }
 
 function pickClass(u: number, mix: CityBiome['construction']): Building['class'] {
@@ -180,7 +175,6 @@ export function generateCity(biome: CityBiome): GeneratedCity {
       (cls === BuildingClass.Concrete ? 10 : 0)
     const h = Math.min(baseH, 230)
     const variant = pickVariant(d, cls, h, Math.max(w, depth), biome, rand())
-    const floors = Math.max(2, Math.round(h / (variant === 'house' ? 3.4 : 3.6)))
     const yaw = d === District.Residential && rand() > 0.82 ? (rand() - 0.5) * 0.18 : 0
     const podiumH = variant === 'tower' && h > 58 ? 11 + rand() * 10 : 0
     buildings.push({
@@ -194,9 +188,7 @@ export function generateCity(biome: CityBiome): GeneratedCity {
       occupancy: Math.max(2, (densityAt(cx, cz) * w * depth) / 1e6 * 80),
       district: d,
       variant,
-      floors,
       seed: rand() * 1000,
-      cols: Math.max(3, Math.round(Math.max(w, depth) / (variant === 'house' ? 4.2 : 3.4))),
       podiumH,
     })
   }

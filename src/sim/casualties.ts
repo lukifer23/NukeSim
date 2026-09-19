@@ -3,12 +3,18 @@ import type { BuildingClass, DamageState } from './types'
 import { DamageState as DS, BuildingClass as BC } from './types'
 
 /**
+ * Inside the fireball the overpressure is far beyond the tabulated range;
+ * use a single high cap for casualty and damage decisions rather than
+ * extrapolating the blast curve.
+ */
+export const FIREBALL_PSI = 80
+
+/**
  * DCPA Attack Environment Manual (1973) / OTA 1979 fatality & injury
  * fractions, using peak overpressure as the proxy. Fire, fallout, and
  * medical-system collapse are NOT in the headline number.
  */
-export function fatalityFraction(psi: number): number {
-  if (psi >= 12) return 0.98
+export function fatalityFraction(psi: number): number {  if (psi >= 12) return 0.98
   if (psi >= 5) return 0.5 + ((psi - 5) / 7) * 0.48
   if (psi >= 2) return 0.05 + ((psi - 2) / 3) * 0.45
   if (psi >= 1) return 0.01 + ((psi - 1) / 1) * 0.04
@@ -67,7 +73,7 @@ export function sampleCasualties(
     const r1 = ((i + 1) / nR) * cityRadiusM
     const r = (r0 + r1) / 2
     const areaKm2 = (Math.PI * (r1 * r1 - r0 * r0)) / 1e6
-    const psi = r < fireballR ? 80 : overpressureAtRangePsi(yieldKt, hobM, r)
+    const psi = r < fireballR ? FIREBALL_PSI : overpressureAtRangePsi(yieldKt, hobM, r)
     const f = fatalityFraction(psi)
     const inj = injuryFraction(psi)
     for (let k = 0; k < nA; k++) {

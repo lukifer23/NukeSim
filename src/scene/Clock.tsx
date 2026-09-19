@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { useSim } from '../state/store'
+import { isLiveField, useSim } from '../state/store'
+import { MAX_SIM_TIME_S, playbackRate } from '../sim/timeline'
 import { setRenderTime } from './runtimeClock'
 
 /** Advances sim-time on a log-friendly clock. Early seconds tick slower visually via speed. */
@@ -10,7 +11,7 @@ export function Clock() {
 
   useFrame((_, dt) => {
     const s = useSim.getState()
-    if (!s.playing || (s.phase !== 'detonate' && s.phase !== 'explore')) {
+    if (!s.playing || !isLiveField(s.phase)) {
       time.current = s.simTime
       lastPublished.current = s.simTime
       setRenderTime(s.simTime)
@@ -18,12 +19,10 @@ export function Clock() {
     }
     if (Math.abs(s.simTime - lastPublished.current) > 0.35) time.current = s.simTime
     const t = time.current
-    // First 20 sim seconds stay near wall-clock (times user speed), then accelerate.
-    const rate = t < 20 ? s.speed : t < 90 ? 3 * s.speed : 24 * s.speed
-    const next = Math.min(48 * 3600, t + Math.min(dt, 0.05) * rate)
+    const next = Math.min(MAX_SIM_TIME_S, t + Math.min(dt, 0.05) * playbackRate(t, s.speed))
     time.current = next
     setRenderTime(next)
-    if (next - lastPublished.current >= 0.083 || next === 48 * 3600) {
+    if (next - lastPublished.current >= 0.083 || next === MAX_SIM_TIME_S) {
       lastPublished.current = next
       s.setSimTime(next)
     }

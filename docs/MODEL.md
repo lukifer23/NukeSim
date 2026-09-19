@@ -28,6 +28,7 @@ Every public number in the HUD carries a `confidence` tag. If a visual change wo
 - Law: D(W) = D₁ · W^(1/3). Scaled height of burst z = H / W^(1/3).
 - HOB: a smooth “knee” peaks near the Mach-reflection optimum (about 205 m·kt^(−1/3) for 5 psi). Surface burst is 65–85% of that optimum, depending on psi. Interpolation of the Glasstone Fig. 3.73 *family*, not a digitised reprint.
 - Rings: 20, 12, 5, 3, 1, 0.25 psi.
+- Far field: between tabulated levels the inversion is log-interpolated; past the 0.1 psi sample the local falloff exponent blends from the strong-shock R⁻³ toward the acoustic R⁻¹, so distant overpressure is not under-predicted. Still order-of-magnitude.
 - Arrival: faster than sound near GZ, approaching 340 m/s. Time scales as W^(1/3).
 - Dynamic pressure: Rankine–Hugoniot, γ = 1.4.
 - Source: Glasstone & Dolan 1977 Ch. III; OTA 1979 destructive-radius figures.
@@ -83,8 +84,8 @@ Every public number in the HUD carries a `confidence` tag. If a visual change wo
 
 ## Crater and mushroom
 
-- Crater: surface / near-surface only; Sedan-class engineering fit.
-- Cloud rise: Miller / Glasstone curve fits. 1 Mt → ~20 km cap, ~80–100 m/s early rise.
+- Crater: surface / near-surface only; Sedan-class engineering fit (100 kt ≈ 358 m apparent diameter).
+- Cloud rise: Miller / Glasstone curve fits. The stabilized cap saturates toward ~19 km instead of growing without bound at very high yield, standing in for the tropopause and stratospheric spreading.
 - Fireball, shock, cloud, damage, and rubble rendering are explanatory visualizations of the reported model state. Their color, exposure, geometry sampling, and camera framing are not additional physical outputs.
 
 ## Golden tests (`npm test`)

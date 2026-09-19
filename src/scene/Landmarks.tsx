@@ -1,11 +1,12 @@
 import { useRef, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSim } from '../state/store'
+import { useSim, isLiveField } from '../state/store'
 import {
   arrivalTimeS,
   damageFromOverpressure,
   fireballMaxRadiusM,
+  isSurfaceBurst,
   overpressureAtRangePsi,
 } from '../sim'
 import { BuildingClass, DamageState } from '../sim/types'
@@ -38,7 +39,7 @@ function Fielded({
     const group = ref.current
     if (!group) return
     const s = useSim.getState()
-    if (!s.hasRun || (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief')) {
+    if (!s.hasRun || !isLiveField(s.phase)) {
       group.scale.set(1, 1, 1)
       group.rotation.set(0, 0, 0)
       group.visible = true
@@ -47,7 +48,7 @@ function Fielded({
     const hob = s.hobResolved()
     const t = getRenderTime()
     const r = Math.hypot(x - s.impactOffset.x, z - s.impactOffset.z)
-    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
     const psi = overpressureAtRangePsi(s.yieldKt, hob, r)
     const damage = damageFromOverpressure(cls, psi, r < fb)
     const k = damage === DamageState.Intact ? 0 : THREE.MathUtils.smoothstep(t - arrivalTimeS(s.yieldKt, hob, r), 0, 0.7)

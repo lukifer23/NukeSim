@@ -1,9 +1,5 @@
-/** 1 kiloton TNT = 4.184e12 J. */
-export const KT_JOULES = 4.184e12
 export const SOUND_MPS = 340
 export const FT_TO_M = 0.3048
-export const M_TO_KM = 0.001
-export const PSI_TO_PA = 6894.76
 
 export function cubeRoot(wKt: number): number {
   return Math.cbrt(Math.max(wKt, 1e-9))
@@ -13,16 +9,8 @@ export function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v))
 }
 
-export function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t
-}
-
 export function degToRad(d: number): number {
   return (d * Math.PI) / 180
-}
-
-export function radToDeg(r: number): number {
-  return (r * 180) / Math.PI
 }
 
 /** Format a meters value for HUD. */

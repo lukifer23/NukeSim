@@ -20,8 +20,10 @@ export function emptyLessonProgress(): LessonProgressV1 {
 
 export function loadLessonProgress(storage: Pick<Storage, 'getItem'> | null = safeStorage()): LessonProgressV1 {
   if (!storage) return emptyLessonProgress()
+  const raw = storage.getItem(LESSON_PROGRESS_KEY)
+  if (!raw) return emptyLessonProgress()
   try {
-    const value = JSON.parse(storage.getItem(LESSON_PROGRESS_KEY) ?? '') as Partial<LessonProgressV1>
+    const value = JSON.parse(raw) as Partial<LessonProgressV1>
     if (value.schemaVersion !== 1 || !value.records || typeof value.records !== 'object') return emptyLessonProgress()
     return { schemaVersion: 1, records: value.records }
   } catch {

@@ -1,6 +1,7 @@
 import { MUNITIONS, YIELD_NOTCHES } from '../data/munitions'
 import { BurstMode } from '../sim/types'
 import { useSim } from '../state/store'
+import { classifyTimeOfDay } from '../sim/timeline'
 import { formatRange, formatYield, logYieldFromSlider, sliderFromLogYield } from './format'
 import { cityById } from '../data/cities'
 import { ScenarioShare } from './ScenarioShare'
@@ -178,7 +179,7 @@ export function Bench() {
           step={0.01}
           value={s.timeOfDay}
           onChange={(v) => s.setTimeOfDay(v)}
-          display={timeOfDayLabel(s.timeOfDay)}
+          display={classifyTimeOfDay(s.timeOfDay)}
         />
         <div className="flex justify-between font-mono text-[11px] text-mute">
           <span>night</span>
@@ -227,13 +228,6 @@ export function Bench() {
       </section>
     </aside>
   )
-}
-
-function timeOfDayLabel(t: number): string {
-  if (t < 0.18) return 'night'
-  if (t < 0.34) return 'dawn'
-  if (t < 0.72) return 'day'
-  return 'dusk'
 }
 
 function MiniRings() {

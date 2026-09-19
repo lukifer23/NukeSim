@@ -11,7 +11,6 @@ import { hobRangeFactor, scaledHob } from './hob'
  * destructive-radius figures; Fletcher CEX-62.2 curve-fit family.
  */
 export const BLAST_PSI = [20, 12, 5, 3, 1, 0.25] as const
-export type BlastPsi = (typeof BLAST_PSI)[number]
 
 const REF_1KT_OPT_M: Record<number, number> = {
   20: 220,
@@ -52,8 +51,13 @@ export function overpressureAtRangePsi(yieldKt: number, hobM: number, rangeM: nu
   const ranges = samples.map((p) => blastGroundRangeM(yieldKt, hobM, p))
   if (rangeM <= ranges[0]) return samples[0]
   if (rangeM >= ranges[ranges.length - 1]) {
+    // Beyond the tabulated 0.1 psi sample, the strong-shock R^-3 falloff
+    // relaxes toward the acoustic R^-1 far field. Blend the local exponent so
+    // distant overpressure is not wildly under-predicted.
     const rLast = ranges[ranges.length - 1]
-    return samples[samples.length - 1] * (rLast / rangeM) ** 3
+    const u = rangeM / rLast
+    const exponent = 1 + 2 / (1 + (u - 1) / 1.5)
+    return samples[samples.length - 1] * u ** -exponent
   }
   for (let i = 0; i < samples.length - 1; i++) {
     if (rangeM >= ranges[i] && rangeM <= ranges[i + 1]) {

@@ -1,18 +1,31 @@
 import { BLAST_PSI, BLAST_RING_META, blastGroundRangeM, overpressureAtRangePsi, arrivalTimeS, dynamicPressurePsi, equivalentWindMph } from './blast'
-import { fireballMaxRadiusM, fireballTouchesGround, fireballBreakawayM } from './fireball'
+import { fireballMaxRadiusM, fireballTouchesGround, fireballBreakawayM, isSurfaceBurst } from './fireball'
 import { burnThresholds, thermalFluenceCalCm2, thermalGroundRangeM, THERMAL_RING_COLORS } from './thermal'
 import { promptDoseRem, promptGroundRangeM, PROMPT_LEVELS } from './radiation'
 import { craterFor } from './crater'
 import { mushroomCloud } from './cloud'
 import { falloutContours, falloutRateAtH1, integratedDoseRad, arrivalHours, SHELTER_FACTOR } from './fallout'
-import { damageFromOverpressure, fatalityFraction, injuryFraction } from './casualties'
+import { damageFromOverpressure, fatalityFraction, injuryFraction, FIREBALL_PSI } from './casualties'
 import { BurstMode, Confidence, type BurstMode as BurstModeT, type EffectsReport, type ProbeResult, type ScenarioInput, type Shelter, type BuildingClass } from './types'
 import { BuildingClass as BC } from './types'
 import { optimumHobForPsi, searchOptimumHob } from './hob'
 import { cubeRoot } from './units'
-import { ridgeBlastFactor } from './los'
+import { ridgeBlastFactor, RIDGE_SHADOW_FACTOR } from './los'
+
+// Resolving the thermal-optimum HOB runs a search; the scene and probe paths
+// ask for the same value many times per frame, so memoize the last answer.
+let hobKey = ''
+let hobValue = 0
 
 export function resolveHob(yieldKt: number, mode: BurstModeT, customM: number, visibilityKm: number): number {
+  const key = `${yieldKt}|${mode}|${customM}|${visibilityKm}`
+  if (key === hobKey) return hobValue
+  hobValue = resolveHobUncached(yieldKt, mode, customM, visibilityKm)
+  hobKey = key
+  return hobValue
+}
+
+function resolveHobUncached(yieldKt: number, mode: BurstModeT, customM: number, visibilityKm: number): number {
   if (mode === BurstMode.Surface) return 0
   if (mode === BurstMode.Custom) return Math.max(0, customM)
   if (mode === BurstMode.OptimizeBlast) return optimumHobForPsi(yieldKt, 5)
@@ -20,9 +33,24 @@ export function resolveHob(yieldKt: number, mode: BurstModeT, customM: number, v
   return searchOptimumHob(yieldKt, (h) => thermalGroundRangeM(yieldKt, h, th.second, visibilityKm))
 }
 
+// The full field report is a pure function of the scenario, and interactive
+// probing rebuilds it on every pointer move. Memoize the last scenario so a
+// probe does not recompute the whole report.
+let cacheKey = ''
+let cacheReport: EffectsReport | null = null
+
 export function computeEffects(input: ScenarioInput): EffectsReport {
+  const key = `${input.yieldKt}|${input.hobM}|${input.fissionFraction}|${input.windSpeedMps}|${input.windDirDeg}|${input.visibilityKm}`
+  if (cacheReport && cacheKey === key) return cacheReport
+  const report = computeEffectsUncached(input)
+  cacheKey = key
+  cacheReport = report
+  return report
+}
+
+function computeEffectsUncached(input: ScenarioInput): EffectsReport {
   const { yieldKt, hobM, fissionFraction, windSpeedMps, windDirDeg, visibilityKm } = input
-  const surface = hobM <= 1
+  const surface = isSurfaceBurst(hobM)
   const fireballR = fireballMaxRadiusM(yieldKt, surface)
   const touches = fireballTouchesGround(yieldKt, hobM)
   const th = burnThresholds(yieldKt)
@@ -129,12 +157,12 @@ export function probeAt(
     input.yieldKt,
     Math.max(slantRangeM, 1),
     input.visibilityKm,
-    input.hobM <= 1,
+    isSurfaceBurst(input.hobM),
   )
   let rem = promptDoseRem(input.yieldKt, slantRangeM, input.fissionFraction)
   if (!losClear) {
-    thermal *= 0.02
-    rem *= 0.02
+    thermal *= RIDGE_SHADOW_FACTOR
+    rem *= RIDGE_SHADOW_FACTOR
   }
   const rate = falloutRateAtH1(x, z, report.fallout)
   const shelter = opts?.shelter ?? 'open'
@@ -165,8 +193,8 @@ export function probeAt(
     falloutRateH1RadH: rate,
     falloutDoseRad: dose,
     buildingDamage: damageFromOverpressure(cls, psi, insideFireball),
-    fatalityFrac: fatalityFraction(insideFireball ? 80 : psi),
-    injuryFrac: injuryFraction(insideFireball ? 80 : psi),
+    fatalityFrac: fatalityFraction(insideFireball ? FIREBALL_PSI : psi),
+    injuryFrac: injuryFraction(insideFireball ? FIREBALL_PSI : psi),
     notes,
     losClear,
     confidence: report.fireballTouchesGround ? Confidence.Heuristic : Confidence.Interpolated,

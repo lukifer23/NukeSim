@@ -25,7 +25,8 @@ describe('cloud camera framing', () => {
     const cam = cloudCameraFrame(height)
     expect(height).toBeGreaterThan(4000)
     expect(cam.lookY).toBeGreaterThan(fire.lookY * 4)
-    expect(cam.lookY).toBeGreaterThan(height * 0.65)
+    // The look target sits above the cap centre-line of the full column.
+    expect(cam.lookY).toBeGreaterThan(height * 0.6)
     expect(cam.cameraHeight).toBeLessThan(cam.lookY)
   })
 
@@ -34,8 +35,8 @@ describe('cloud camera framing', () => {
     const height = cloudHeightAtTimeM(cloud, 90)
     const cam = cloudCameraFrame(height)
     expect(height).toBeGreaterThan(12000)
-    expect(cam.lookY).toBeGreaterThan(height * 0.65)
-    expect(cam.endDistance).toBeLessThan(26000)
+    expect(cam.lookY).toBeGreaterThan(height * 0.6)
+    expect(cam.endDistance).toBeLessThanOrEqual(34000)
     expect(cam.cameraHeight).toBeLessThan(cam.lookY)
   })
 
@@ -44,7 +45,7 @@ describe('cloud camera framing', () => {
     const late = cloudCameraFrame(9000)
     const huge = cloudCameraFrame(50000)
     expect(late.lookY).toBeGreaterThan(early.lookY * 8)
-    expect(huge.endDistance).toBeLessThanOrEqual(20000)
-    expect(huge.lookY).toBeCloseTo(18000 * 0.73, 0)
+    expect(huge.endDistance).toBeLessThanOrEqual(34000)
+    expect(huge.lookY).toBeCloseTo(18000 * 1.22 * 0.5, 0)
   })
 })

@@ -5,7 +5,7 @@ import { vegetationPoints } from '../../src/scene/vegPoints'
 import { atmosphereLook } from '../../src/scene/atmosphere'
 import { makeDrapedRing, roadMidpointIsWater } from '../../src/scene/drape'
 import { craterFor } from '../../src/sim'
-import { damagePose } from '../../src/scene/damagePose'
+import { damageAmount, damagePose, damageProgress } from '../../src/scene/damagePose'
 import { DamageState } from '../../src/sim/types'
 import { District } from '../../src/city/types'
 import { craterReliefM } from '../../src/scene/craterRelief'
@@ -106,28 +106,65 @@ describe('ocean shore', () => {
 })
 
 describe('damage interpolation', () => {
-  it('does not squash a collapsing building before the rubble swap', () => {
+  it('crushes a collapsing building progressively instead of swapping instantly', () => {
     const b = {
       x: 0, z: 0, w: 20, d: 16, h: 40, yaw: 0, class: 'masonry' as const,
       occupancy: 10, district: District.Core, variant: 'walkup' as const,
-      floors: 11, seed: 0.42, cols: 6, podiumH: 0,
+      seed: 0.42, podiumH: 0,
     }
     const a = damagePose(b, DamageState.Collapsed, 0)
     const mid = damagePose(b, DamageState.Collapsed, 0.5)
     const z = damagePose(b, DamageState.Collapsed, 1)
     expect(a.scaleY).toBeCloseTo(1)
-    expect(mid.scaleY).toBe(1)
+    expect(mid.scaleY).toBeLessThan(1)
+    expect(mid.scaleY).toBeGreaterThan(0.3)
     expect(z.scaleY).toBeLessThan(0.3)
+    // The mound spreads as the floors pancake.
+    expect(z.scaleX).toBeGreaterThan(1)
+    expect(z.sunk).toBeGreaterThan(0)
   })
 
   it('creates deterministic visual events from the same field', () => {
     const b = {
       x: 120, z: -80, w: 20, d: 16, h: 40, yaw: 0, class: 'masonry' as const,
       occupancy: 10, district: District.Core, variant: 'walkup' as const,
-      floors: 11, seed: 0.42, cols: 6, podiumH: 0,
+      seed: 0.42, podiumH: 0,
     }
     const field = { yieldKt: 100, hobM: 0, fireballRadiusM: 140, impactX: 0, impactZ: 0, ignites: () => true }
     expect(buildingVisualEvent(b, field)).toEqual(buildingVisualEvent(b, field))
     expect(buildingVisualEvent(b, field)).toMatchObject({ ignites: true, seed: 0.42 })
+  })
+})
+
+describe('destruction depth', () => {
+  const b = {
+    x: 100, z: 0, w: 20, d: 16, h: 40, yaw: 0, class: 'masonry' as const,
+    occupancy: 10, district: District.Core, variant: 'walkup' as const,
+      seed: 0.42, podiumH: 0,
+  }
+
+  it('topples away from ground zero when a lean direction is given', () => {
+    const outward = damagePose(b, DamageState.Collapsed, 1, { x: 1, z: 0 })
+    const inward = damagePose(b, DamageState.Collapsed, 1, { x: -1, z: 0 })
+    expect(outward.tiltZ).toBeLessThan(0)
+    expect(inward.tiltZ).toBeGreaterThan(0)
+    expect(Math.abs(outward.tiltX)).toBeLessThan(0.2)
+  })
+
+  it('staggers severe and collapsed failures but not glass', () => {
+    expect(damageProgress(DamageState.Intact, 0.9, 5)).toBe(0)
+    expect(damageProgress(DamageState.Collapsed, 0.9, 0)).toBe(0)
+    expect(damageProgress(DamageState.Collapsed, 0.9, 5)).toBe(1)
+    expect(damageProgress(DamageState.Severe, 0.9, 0)).toBe(0)
+    expect(damageProgress(DamageState.Severe, 0.9, 5)).toBe(1)
+    expect(damageProgress(DamageState.Glass, 0.9, 1)).toBe(1)
+  })
+
+  it('maps damage states to facade shatter', () => {
+    expect(damageAmount(DamageState.Intact)).toBe(0)
+    expect(damageAmount(DamageState.Glass)).toBeGreaterThan(0)
+    expect(damageAmount(DamageState.Severe)).toBeGreaterThan(damageAmount(DamageState.Moderate))
+    expect(damageAmount(DamageState.Collapsed)).toBe(1)
+    expect(damageAmount(DamageState.Vaporized)).toBe(1)
   })
 })

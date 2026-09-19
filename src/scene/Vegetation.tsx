@@ -1,8 +1,8 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSim } from '../state/store'
-import { fireballMaxRadiusM, shockRadiusAtTimeM } from '../sim'
+import { useSim, isLiveField } from '../state/store'
+import { isSurfaceBurst, fireballMaxRadiusM, shockRadiusAtTimeM } from '../sim'
 import { vegetationPoints } from './vegPoints'
 import { getRenderTime } from './runtimeClock'
 
@@ -41,7 +41,7 @@ function VegLayer({
     const s = useSim.getState()
     const hob = s.hobResolved()
     const shock = live ? shockRadiusAtTimeM(s.yieldKt, hob, t) : 0
-    const fb = fireballMaxRadiusM(s.yieldKt, hob <= 1)
+    const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
     let n = 0
     for (const p of points) {
       const r = Math.hypot(p.x - s.impactOffset.x, p.z - s.impactOffset.z)
@@ -81,7 +81,7 @@ function VegLayer({
   }, [fieldSig, points])
   useFrame(() => {
     const s = useSim.getState()
-    if (s.phase !== 'detonate' && s.phase !== 'explore' && s.phase !== 'debrief') {
+    if (!isLiveField(s.phase)) {
       frozen.current = false
       return
     }

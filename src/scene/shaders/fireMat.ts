@@ -12,9 +12,12 @@ export function makeFireMaterial(): THREE.ShaderMaterial {
     dithering: true,
     side: THREE.DoubleSide,
     vertexShader: /* glsl */ `
+      attribute float aSeed;
       varying vec2 vUv;
+      varying float vSeed;
       void main(){
         vUv = uv;
+        vSeed = aSeed;
         #ifdef USE_INSTANCING
           gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
         #else
@@ -24,8 +27,8 @@ export function makeFireMaterial(): THREE.ShaderMaterial {
     `,
     fragmentShader: /* glsl */ `
       uniform float uTime;
-      uniform float uSeed;
       varying vec2 vUv;
+      varying float vSeed;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float noise(vec2 p){
         vec2 i = floor(p);
@@ -41,7 +44,7 @@ export function makeFireMaterial(): THREE.ShaderMaterial {
       void main(){
         vec2 uv = vUv;
         uv.y = 1.0 - uv.y;
-        float n = fbm(vec2(uv.x * 3.2 + uSeed, uv.y * 2.4 - uTime * 1.6));
+        float n = fbm(vec2(uv.x * 3.2 + vSeed * 11.0, uv.y * 2.4 - uTime * 1.6));
         float shape = smoothstep(0.48, 0.08, abs(uv.x - 0.5) / (0.18 + uv.y * 0.55));
         shape *= smoothstep(0.0, 0.12, uv.y) * (1.0 - smoothstep(0.55, 1.0, uv.y + n * 0.22));
         vec3 hot = vec3(1.0, 0.92, 0.55);

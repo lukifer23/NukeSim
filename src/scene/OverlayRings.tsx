@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Html } from '@react-three/drei'
+import * as THREE from 'three'
 import { useSim } from '../state/store'
 import type { EffectKind } from '../sim/types'
 import { makeDrapedRing } from './drape'
@@ -23,18 +24,49 @@ function Ring({
     () => makeDrapedRing(radius, width, 96, city.heightAt, offset.x, offset.z, 2.2),
     [radius, width, city, offset.x, offset.z],
   )
-  if (radius < 8) return null
-  return (
-    <mesh geometry={geo} position={[offset.x, 0, offset.z]}>
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={dashed ? opacity * 0.7 : opacity}
-        depthWrite={false}
-        side={2}
-      />
-    </mesh>
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: true,
+        uniforms: {
+          uColor: { value: new THREE.Color(color) },
+          uOpacity: { value: opacity },
+          uDashed: { value: dashed ? 1 : 0 },
+          uRepeat: { value: Math.max(10, Math.round(radius / 42)) },
+        },
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main(){
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform vec3 uColor;
+          uniform float uOpacity;
+          uniform float uDashed;
+          uniform float uRepeat;
+          varying vec2 vUv;
+          void main(){
+            // Real dashes around the circumference, soft across the ribbon.
+            float dash = 1.0;
+            if (uDashed > 0.5) dash = step(fract(vUv.x * uRepeat), 0.62);
+            float edge = smoothstep(0.0, 0.32, vUv.y) * smoothstep(1.0, 0.68, vUv.y);
+            float a = uOpacity * dash * edge;
+            if (a < 0.004) discard;
+            gl_FragColor = vec4(uColor, a);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }
+        `,
+      }),
+    [color, opacity, dashed, radius],
   )
+  if (radius < 8) return null
+  return <mesh geometry={geo} material={mat} position={[offset.x, 0, offset.z]} />
 }
 
 function RingLabel({ radius, color, text, loft = 28 }: { radius: number; color: string; text: string; loft?: number }) {

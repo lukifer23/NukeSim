@@ -79,22 +79,23 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
 
       float cloudSdf(vec3 p){
         vec3 q = p;
-        q.xz -= uWind * q.y * 0.12;
-        vec3 capP = q - vec3(0.0, 0.36, 0.0);
-        float ring = sdTorus(capP, vec2(0.52, 0.15 + 0.02 * uGrow));
-        float crown = sdEllipsoid(capP - vec3(0.0, 0.035, 0.0), vec3(0.82, 0.17, 0.82));
-        float lobeA = sdEllipsoid(capP - vec3(0.43, 0.015, 0.10), vec3(0.40, 0.15, 0.36));
-        float lobeB = sdEllipsoid(capP - vec3(-0.38, 0.025, -0.22), vec3(0.43, 0.16, 0.38));
+        float g = clamp(uGrow, 0.0, 1.0);
+        // Altitude-dependent shear: the stem stays roughly vertical while the
+        // cap smears downwind, instead of the whole column sliding as one slab.
+        float shear = max(0.0, q.y + 0.05);
+        q.xz -= uWind * shear * (0.05 + 0.18 * shear);
+        vec3 capP = q - vec3(0.0, 0.40, 0.0);
+        float capR = 0.44 + 0.14 * g;
+        float ring = sdTorus(capP, vec2(capR, 0.13 + 0.03 * g));
+        float crown = sdEllipsoid(capP - vec3(0.0, 0.03, 0.0), vec3(0.66 + 0.18 * g, 0.15 + 0.05 * g, 0.66 + 0.18 * g));
+        float lobeA = sdEllipsoid(capP - vec3(0.36, 0.0, 0.08), vec3(0.34, 0.13, 0.30));
+        float lobeB = sdEllipsoid(capP - vec3(-0.32, 0.02, -0.18), vec3(0.36, 0.14, 0.32));
         float cap = min(min(ring, crown), min(lobeA, lobeB));
-        float ice = sdEllipsoid(q - vec3(0.0, 0.43, 0.0), vec3(0.62, 0.08, 0.62));
-        float stem = sdCappedCone(q - vec3(0.0, -0.08, 0.0), 0.48, mix(0.10, 0.24, uSurface), 0.105);
-        float collar = sdTorus(q - vec3(0.0, 0.08, 0.0), vec2(0.21, 0.07));
-        float surge = uSurface > 0.5 ? sdEllipsoid(q - vec3(0.0, -0.52, 0.0), vec3(0.64, 0.035, 0.64)) : 1.0;
-        float d = min(cap, ice);
-        d = min(d, stem);
-        d = min(d, collar);
-        d = min(d, surge);
-        return d;
+        float ice = sdEllipsoid(q - vec3(0.0, 0.46, 0.0), vec3(0.52, 0.07, 0.52));
+        float stem = sdCappedCone(q - vec3(0.0, -0.05, 0.0), 0.44, mix(0.07, 0.16, uSurface), 0.085);
+        float collar = sdTorus(q - vec3(0.0, 0.10, 0.0), vec2(0.16, 0.04));
+        float surge = uSurface > 0.5 ? sdEllipsoid(q - vec3(0.0, -0.5, 0.0), vec3(0.4, 0.028, 0.4)) : 1.0;
+        return min(min(cap, ice), min(min(stem, collar), surge));
       }
 
       void main(){
@@ -113,34 +114,42 @@ export function makeVolumeCloudMaterial(): THREE.ShaderMaterial {
         float T = 1.0;
         vec3 col = vec3(0.0);
         vec3 sun = normalize(uSun);
+        // Box spans -1..1 (2 units); keep optical density independent of steps.
+        float stepLen = 2.0 / max(uSteps, 12.0);
         for (int i = 0; i < 36; i++) {
           if (float(i) >= uSteps) break;
           vec3 p = ro + rd * t;
           if (t > tExit || abs(p.x) > 1.2 || abs(p.y) > 1.2 || abs(p.z) > 1.2) break;
           float d = cloudSdf(p);
-          float boil = fbm(p * 2.8 + vec3(uTime * 0.07, uTime * 0.04, 0.0));
-          float dens = 1.0 - smoothstep(-0.05, 0.10, d + (boil - 0.45) * 0.10);
-          dens *= 0.62 + 0.38 * boil;
+          float boil = fbm(p * 2.6 + vec3(uTime * 0.07, uTime * 0.04, 0.0));
+          float detail = fbm(p * 7.5 - vec3(uTime * 0.05, 0.0, uTime * 0.04));
+          float dens = 1.0 - smoothstep(-0.06, 0.07, d + (boil - 0.45) * 0.14 + (detail - 0.5) * 0.05);
+          dens *= 0.38 + 0.62 * boil;
+          // 4-tap sun march gives the cap readable light and shadow faces.
           float lightDens = 0.0;
-          for (int j = 1; j <= 3; j++) {
-            vec3 sp = p + sun * float(j) * 0.075;
+          for (int j = 1; j <= 4; j++) {
+            vec3 sp = p + sun * float(j) * 0.085;
             float sd = cloudSdf(sp);
-            lightDens += (1.0 - smoothstep(-0.04, 0.08, sd)) * 0.23;
+            lightDens += (1.0 - smoothstep(-0.04, 0.07, sd)) * 0.2;
           }
-          float shadow = exp(-lightDens * 1.8);
-          vec3 ash = vec3(0.24, 0.23, 0.22);
-          vec3 lit = vec3(0.60, 0.57, 0.52);
-          vec3 ice = vec3(0.68, 0.71, 0.73);
-          float iceMix = smoothstep(0.33, 0.57, p.y) * 0.34;
+          float shadow = exp(-lightDens * 2.3);
+          // Warm under-lit base, cool shadowed flanks, bright sunward crown.
+          vec3 ash = vec3(0.28, 0.26, 0.24);
+          vec3 lit = vec3(0.86, 0.82, 0.76);
+          vec3 ice = vec3(0.80, 0.84, 0.88);
+          float iceMix = smoothstep(0.3, 0.55, p.y) * (0.4 + 0.3 * detail);
           vec3 albedo = mix(mix(ash, lit, shadow), ice, iceMix);
-          col += albedo * dens * T * 0.30;
-          T *= exp(-dens * 0.40);
+          albedo *= 0.72 + 0.5 * shadow;
+          // Optical density is integrated with step length so changing the
+          // quality step count changes smoothness, not opacity.
+          col += albedo * dens * stepLen * 7.6 * T;
+          T *= exp(-dens * stepLen * 10.5);
           if (T < 0.02) break;
-          t += 0.048 + dens * 0.018;
+          t += stepLen + dens * stepLen * 0.4;
         }
         float alpha = (1.0 - T) * uOpacity;
         if (alpha < 0.01) discard;
-        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.94));
+        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.95));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }

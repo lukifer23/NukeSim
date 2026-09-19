@@ -78,7 +78,3 @@ export const GLOSSARY: GlossaryEntry[] = [
     source: 'Glasstone; open historical accounts',
   },
 ]
-
-export function glossaryById(id: string): GlossaryEntry | undefined {
-  return GLOSSARY.find((g) => g.id === id)
-}

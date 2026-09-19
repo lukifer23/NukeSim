@@ -11,6 +11,8 @@
  * Burn thresholds grow with yield because the pulse is longer
  * (Glasstone 1977 revision — the set NUKEMAP adopted).
  */
+import { isSurfaceBurst } from './fireball'
+
 export function thermalPartition(surface: boolean): number {
   return surface ? 0.35 * 0.7 : 0.35
 }
@@ -67,7 +69,7 @@ export function thermalGroundRangeM(
   fluence: number,
   visibilityKm: number,
 ): number {
-  const surface = hobM <= 1
+  const surface = isSurfaceBurst(hobM)
   const slant = thermalSlantForFluenceM(yieldKt, fluence, visibilityKm, surface)
   if (slant <= hobM) return 0
   return Math.sqrt(slant * slant - hobM * hobM)

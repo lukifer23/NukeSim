@@ -1,4 +1,4 @@
-import { burnThresholds, ignites, thermalFluenceCalCm2 } from '../sim'
+import { isSurfaceBurst, RIDGE_SHADOW_FACTOR, MIN_LOS_ORIGIN_M, burnThresholds, ignites, thermalFluenceCalCm2 } from '../sim'
 import type { BuildingClass } from '../sim/types'
 
 type Sample = {
@@ -32,11 +32,11 @@ export function ignitesAt(
   if (hit !== undefined) return hit
   const r = Math.hypot(x - sample.ox, z - sample.oz)
   const losClear = sample.ridge
-    ? sample.lineOfSight(sample.ox, Math.max(sample.hob, 12), sample.oz, x, y, z)
+    ? sample.lineOfSight(sample.ox, Math.max(sample.hob, MIN_LOS_ORIGIN_M), sample.oz, x, y, z)
     : true
   const flu =
-    thermalFluenceCalCm2(sample.yieldKt, Math.hypot(r, sample.hob), sample.visibilityKm, sample.hob <= 1) *
-    (losClear ? 1 : 0.02)
+    thermalFluenceCalCm2(sample.yieldKt, Math.hypot(r, sample.hob), sample.visibilityKm, isSurfaceBurst(sample.hob)) *
+    (losClear ? 1 : RIDGE_SHADOW_FACTOR)
   const th = burnThresholds(sample.yieldKt)
   const on = ignites(flu, th.ignition, cls as BuildingClass)
   cache.set(key, on)

@@ -1,6 +1,6 @@
 /**
  * Apparent crater for surface / near-surface bursts.
- * Engineering fit around Sedan-class (100 kt → ~390 m diameter).
+ * Engineering fit around Sedan-class (100 kt → ~358 m diameter, depth /5).
  * Airbursts produce no crater.
  */
 export function craterFor(yieldKt: number, hobM: number, fireballR: number): { diameterM: number; depthM: number } | null {

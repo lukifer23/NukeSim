@@ -52,13 +52,15 @@ export function makeFacadeMaterial(opts: {
         attribute float aSeed;
         attribute vec2 aCols;
         attribute float aStyle;
+        attribute float aDamage;
         varying vec2 vFuv;
         varying float vFloors;
         varying float vSeed;
         varying float vColsX;
         varying float vColsZ;
         varying float vFaceX;
-        varying float vStyle;`,
+        varying float vStyle;
+        varying float vDamage;`,
       )
       .replace(
         '#include <uv_vertex>',
@@ -69,7 +71,8 @@ export function makeFacadeMaterial(opts: {
         vColsX = aCols.x;
         vColsZ = aCols.y;
         vFaceX = abs(normal.x) > abs(normal.z) ? 1.0 : 0.0;
-        vStyle = aStyle;`,
+        vStyle = aStyle;
+        vDamage = aDamage;`,
       )
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -82,6 +85,7 @@ export function makeFacadeMaterial(opts: {
         varying float vColsZ;
         varying float vFaceX;
         varying float vStyle;
+        varying float vDamage;
         uniform float uDay;
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`,
       )
@@ -110,13 +114,19 @@ export function makeFacadeMaterial(opts: {
         float win = winX * winY;
         float floorBand = 1.0 - smoothstep(0.0, 0.10 + aa, cell.y);
         float night = 1.0 - smoothstep(0.28, 0.48, uDay);
-        float lit = step(0.80, hash(id + vSeed)) * night;
+        float outage = 1.0 - vDamage;
+        float lit = step(0.80, hash(id + vSeed)) * night * outage;
         float glow = mix(0.5, 1.0, hash(id * 1.73 + vSeed));
-        vec3 wall = diffuseColor.rgb;
+        vec3 wall = diffuseColor.rgb * (1.0 - vDamage * 0.18);
         vec3 band = wall * 0.88;
         vec3 glassDay = vec3(0.06, 0.10, 0.14);
         vec3 glassNight = vec3(0.98, 0.74, 0.38);
         vec3 glass = mix(glassDay, glassNight, lit * glow);
+        // Each damaged window cell is independently blown out, so a facade
+        // fails pane by pane rather than switching to a uniform damage tint.
+        float shatter = step(hash(id + vSeed * 5.1), vDamage * 0.82);
+        vec3 openGlass = vec3(0.02, 0.03, 0.04);
+        glass = mix(glass, openGlass, shatter);
         diffuseColor.rgb = mix(mix(wall, band, floorBand), glass, win);
         float litWin = win * lit * glow;`,
       )
@@ -127,6 +137,6 @@ export function makeFacadeMaterial(opts: {
         totalEmissiveRadiance += vec3(1.0, 0.72, 0.36) * (litWin * 1.35);`,
       )
   }
-  mat.customProgramCacheKey = () => `facade-v8-${opts.map ? 'tex' : 'plain'}`
+  mat.customProgramCacheKey = () => `facade-v9-${opts.map ? 'tex' : 'plain'}`
   return mat
 }

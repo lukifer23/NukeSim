@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSim } from '../../state/store'
-import { shockRadiusAtTimeM } from '../../sim'
+import { isSurfaceBurst, shockRadiusAtTimeM } from '../../sim'
 import { getRenderTime } from '../runtimeClock'
 import { makeDrapedRing, updateDrapedRing } from '../drape'
 import { makeShockMaterial } from '../shaders/shockMat'
@@ -30,32 +30,40 @@ export function Shock() {
     const hob = s.hobResolved()
     const t = getRenderTime()
     const r = Math.max(shockRadiusAtTimeM(s.yieldKt, hob, t), 8)
-    const fade = t < 0.04 ? 0 : Math.max(0.015, 0.22 * Math.exp(-t / 20))
-    if (Math.abs(r - lastR.current) > 6) {
+    // Finite life: the front genuinely dissipates instead of leaving permanent
+    // 1.5%-opacity ghost rings on the map forever.
+    const fade = t < 0.04 ? 0 : Math.max(0, 0.26 * Math.exp(-t / 22) - 0.02)
+    if (Math.abs(r - lastR.current) > 4) {
       updateDrapedRing(ringGeo, r, Math.max(16, r * 0.012), city.heightAt, offset.x, offset.z, 2.6)
-      updateDrapedRing(dustGeo, r, Math.max(40, r * 0.04), city.heightAt, offset.x, offset.z, 1.8)
+      updateDrapedRing(dustGeo, r, Math.max(40, r * 0.045), city.heightAt, offset.x, offset.z, 1.8)
       lastR.current = r
     }
+    const alive = fade > 0.004
+    const machHeight = Math.max(16, Math.min(90, r * 0.02))
+    const mach = hob > 6 && hob < s.report.optimumHob5PsiM * 0.78
     if (ring.current) {
+      ring.current.visible = alive
       ;(ring.current.material as THREE.MeshBasicMaterial).opacity = fade
     }
     if (dust.current) {
-      ;(dust.current.material as THREE.MeshBasicMaterial).opacity = fade * 0.38
+      dust.current.visible = alive
+      ;(dust.current.material as THREE.MeshBasicMaterial).opacity = fade * 0.42
     }
     if (shell.current) {
-      shell.current.position.set(offset.x, hob <= 1 ? r * 0.35 : Math.max(hob * 0.15, 8), offset.z)
+      shell.current.position.set(offset.x, isSurfaceBurst(hob) ? r * 0.35 : Math.max(hob * 0.15, 8), offset.z)
       shell.current.scale.setScalar(r)
-      shell.current.visible = t > 0.05 && t < 48
-      shellMat.uniforms.uFade.value = fade
+      shell.current.visible = alive && t > 0.05 && t < 60
+      shellMat.uniforms.uFade.value = fade * 1.8
       shellMat.uniforms.uDust.value = Math.min(1, t / 18)
+      shellMat.uniforms.uTime.value = t
     }
     if (stem.current) {
-      const mach = hob < s.report.optimumHob5PsiM * 0.65 && hob > 8
-      const h = Math.min(42, 12 + r * 0.01)
-      stem.current.visible = mach && t > 0.08 && t < 40
-      stem.current.position.set(offset.x, h * 0.45, offset.z)
-      stem.current.scale.set(r, h, r)
-      ;(stem.current.material as THREE.MeshBasicMaterial).opacity = fade * 0.2
+      // Mach stem: near-ground merged front, wider and brighter than the
+      // incident ring, only while the reflected shock is coupled.
+      stem.current.visible = alive && mach
+      stem.current.position.set(offset.x, machHeight * 0.5, offset.z)
+      stem.current.scale.set(r, machHeight, r)
+      ;(stem.current.material as THREE.MeshBasicMaterial).opacity = fade * 1.5
     }
   })
 
@@ -65,14 +73,14 @@ export function Shock() {
         <sphereGeometry args={[1, 64, 40]} />
       </mesh>
       <mesh ref={ring} geometry={ringGeo} position={[offset.x, 0, offset.z]}>
-        <meshBasicMaterial color="#f2ebe0" transparent opacity={0.5} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#efe8da" transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <mesh ref={dust} geometry={dustGeo} position={[offset.x, 0, offset.z]}>
-        <meshBasicMaterial color="#8a7a68" transparent opacity={0.22} depthWrite={false} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#9c8b74" transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <mesh ref={stem} position={[offset.x, 12, offset.z]}>
-        <cylinderGeometry args={[1, 1.05, 1, 64, 1, true]} />
-        <meshBasicMaterial color="#c4b4a0" transparent opacity={0.14} depthWrite={false} side={THREE.DoubleSide} />
+        <cylinderGeometry args={[1, 1.06, 1, 64, 1, true]} />
+        <meshBasicMaterial color="#d8ccb8" transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
     </group>
   )

@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom'
 
 export function Debrief() {
   const s = useSim()
+  if (s.phase !== 'debrief') return null
   const stats = sampleCasualties(
     s.yieldKt,
     s.hobResolved(),
@@ -18,7 +19,6 @@ export function Debrief() {
     s.report.fireballMaxRadiusM,
     s.impactOffset,
   )
-  if (s.phase !== 'debrief') return null
   const city = cityById(s.cityId)
   const lesson = LESSONS.find((item) => item.id === s.mission?.lessonId)
   if (lesson && s.mission?.baseline && s.mission.comparison && (s.mission.step === 'explain' || s.mission.step === 'complete')) {

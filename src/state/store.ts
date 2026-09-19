@@ -10,14 +10,14 @@ import {
   computeEffects,
   probeAt,
   resolveHob,
+  MIN_LOS_ORIGIN_M,
   type ScenarioInput,
 } from '../sim'
 import { generateCity } from '../city/generate'
 import type { GeneratedCity } from '../city/types'
 import type { BuildingClass } from '../sim/types'
 import { BuildingClass as BC } from '../sim/types'
-import { armRumble } from '../audio/rumble'
-import { SOUND_MPS } from '../sim/units'
+import { setAudioMuted, unlockAudio } from '../audio/unlock'
 import type { SharedScenario } from '../sim/scenario'
 import { LESSONS, resolvedLessonSetup, hobModeFromLesson } from '../data/lessons'
 import {
@@ -36,6 +36,11 @@ import {
 } from '../learn/progress'
 
 export type Phase = 'title' | 'city-select' | 'bench' | 'detonate' | 'explore' | 'debrief'
+
+/** Phases where the field is rendered and its damage state is live. */
+export function isLiveField(phase: Phase): boolean {
+  return phase === 'detonate' || phase === 'explore' || phase === 'debrief'
+}
 
 export type OverlayKey = 'blast' | 'thermal' | 'radiation' | 'fallout' | 'fireball'
 export type Workspace = 'learn' | 'explore' | 'compare'
@@ -95,6 +100,7 @@ type SimState = {
   hasRun: boolean
   showGhost: boolean
   muted: boolean
+  contextLost: boolean
   report: EffectsReport
   accept: () => void
   setWorkspace: (workspace: Workspace) => void
@@ -119,7 +125,6 @@ type SimState = {
   setShelter: (s: Shelter) => void
   setHoursOut: (h: number) => void
   setGlossary: (id: string | null) => void
-  setLesson: (id: string | null) => void
   beginLesson: (id: string) => void
   submitMissionPrediction: (index: number) => void
   restoreMissionSetup: () => void
@@ -133,6 +138,7 @@ type SimState = {
   setReduced: (v: boolean) => void
   setBuildingClass: (c: BuildingClass) => void
   startLaunch: () => void
+  skipCinema: () => void
   skipToExplore: () => void
   saveComparison: () => void
   clearComparison: () => void
@@ -140,6 +146,7 @@ type SimState = {
   loadSharedScenario: (scenario: SharedScenario) => void
   setShowGhost: (v: boolean) => void
   setMuted: (v: boolean) => void
+  setContextLost: (v: boolean) => void
   scenario: () => ScenarioInput
   hobResolved: () => number
 }
@@ -245,6 +252,7 @@ export const useSim = create<SimState>((set, get) => ({
   hasRun: false,
   showGhost: true,
   muted: false,
+  contextLost: false,
   report: computeEffects(inputFrom(initialSlice)),
 
   accept: () => set({ accepted: true, phase: 'city-select' }),
@@ -297,7 +305,7 @@ export const useSim = create<SimState>((set, get) => ({
     const wx = x + s.impactOffset.x
     const wz = z + s.impactOffset.z
     const yT = s.city.heightAt(wx, wz) + 4
-    const losClear = s.city.lineOfSight(s.impactOffset.x, Math.max(hob, 12), s.impactOffset.z, wx, yT, wz)
+    const losClear = s.city.lineOfSight(s.impactOffset.x, Math.max(hob, MIN_LOS_ORIGIN_M), s.impactOffset.z, wx, yT, wz)
     set({
       probe: probeAt(inputFrom(s), x, z, {
         shelter: s.shelter,
@@ -319,7 +327,6 @@ export const useSim = create<SimState>((set, get) => ({
     if (s.probe) s.setProbeWorld(s.probe.x, s.probe.z)
   },
   setGlossary: (glossaryId) => set({ glossaryId }),
-  setLesson: (lessonId) => set({ lessonId }),
   beginLesson: (id) => {
     const lesson = LESSONS.find((item) => item.id === id)
     if (!lesson) return
@@ -426,8 +433,9 @@ export const useSim = create<SimState>((set, get) => ({
   },
   startLaunch: () => {
     const s = get()
-    const delay = 1800 / SOUND_MPS
-    if (!s.muted) armRumble(delay, s.muted)
+    // Create/resume the audio context inside the launch gesture; the scene
+    // schedules the blast once the detonation phase mounts.
+    unlockAudio()
     const report = computeEffects(inputFrom(s))
     const lesson = LESSONS.find((item) => item.id === s.mission?.lessonId)
     let mission = s.mission
@@ -459,13 +467,23 @@ export const useSim = create<SimState>((set, get) => ({
       mission,
     })
   },
+  skipCinema: () => {
+    const s = get()
+    if (s.phase !== 'detonate') return
+    // Jump past the scripted detonation sequence without invalidating the run.
+    set({ simTime: Math.max(s.simTime, 40) })
+  },
   skipToExplore: () => {
     const s = get()
     if (!s.hasRun) return
     set({ phase: 'explore', playing: false, simTime: Math.max(s.simTime, 120) })
   },
   setShowGhost: (showGhost) => set({ showGhost }),
-  setMuted: (muted) => set({ muted }),
+  setMuted: (muted) => {
+    setAudioMuted(muted)
+    set({ muted })
+  },
+  setContextLost: (contextLost) => set({ contextLost }),
   saveComparison: () => {
     const s = get()
     const input = inputFrom(s)

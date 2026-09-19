@@ -6,8 +6,9 @@ import { shockRadiusAtTimeM } from '../../sim'
 import { getRenderTime } from '../runtimeClock'
 import { makeSmokeMaterial } from '../shaders/smokeMat'
 import { ignitesAt, ignitionSampleFromStore } from '../ignitionField'
+import { selectFireSeeds } from './seeds'
 
-const SEEDS = 64
+const SEEDS = 80
 const CARDS = 3
 const COUNT = SEEDS * CARDS
 
@@ -17,17 +18,16 @@ export function SmokePlumes() {
   const dummy = useMemo(() => new THREE.Object3D(), [])
   const mat = useMemo(() => makeSmokeMaterial({ ice: false }), [])
   const seeds = useMemo(() => {
-    return city.buildings
-      .filter((b, i) => i % 11 === 0 && b.district !== 'park')
-      .slice(0, SEEDS)
-      .map((b, i) => ({
-        x: b.x,
-        z: b.z,
-        y: city.heightAt(b.x, b.z) + b.h * 0.4,
-        cls: b.class,
-        delay: 1.4 + (i % 10) * 0.18,
-        scale: 22 + (i % 6) * 7,
-      }))
+    // Same seed set as Fires (first N), so every plume rises from a real fire.
+    return selectFireSeeds(city, SEEDS).map((b, i) => ({
+      x: b.x,
+      z: b.z,
+      y: city.heightAt(b.x, b.z) + b.h * 0.4,
+      cls: b.class,
+      h: b.h,
+      delay: 1.5 + (i % 10) * 0.18,
+      scale: 22 + (i % 6) * 7,
+    }))
   }, [city])
 
   useFrame(() => {
@@ -42,6 +42,7 @@ export function SmokePlumes() {
     const dir = (s.windDirDeg * Math.PI) / 180
     mat.uniforms.uWind.value.set(Math.sin(dir) * (s.windSpeedMps / 20), Math.cos(dir) * (s.windSpeedMps / 20))
     mat.uniforms.uOpacity.value = 0.42
+    const sizeScale = 1 + 0.5 * Math.log10(s.yieldKt + 1)
     let n = 0
     for (const p of seeds) {
       const r = Math.hypot(p.x - s.impactOffset.x, p.z - s.impactOffset.z)
@@ -54,10 +55,14 @@ export function SmokePlumes() {
       for (let c = 0; c < CARDS; c++) {
         dummy.position.set(
           p.x + Math.sin(dir) * (drift + c * 6),
-          p.y + 10 + age * 11 + c * 18 * grow,
+          p.y + 10 * sizeScale + age * 11 + c * 18 * grow,
           p.z + Math.cos(dir) * (drift + c * 6),
         )
-        dummy.scale.set(p.scale * grow * (0.85 + c * 0.4), p.scale * grow * (1.05 + c * 0.35), 1)
+        dummy.scale.set(
+          p.scale * grow * (0.85 + c * 0.4) * sizeScale,
+          p.scale * grow * (1.05 + c * 0.35) * sizeScale,
+          1,
+        )
         dummy.rotation.set(0, 0, 0)
         dummy.updateMatrix()
         mesh.setMatrixAt(n++, dummy.matrix)

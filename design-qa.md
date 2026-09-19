@@ -29,7 +29,7 @@ Both pairs were inspected together in `setup-before-after-exact.jpg`. The implem
 ## Findings and resolution history
 
 - P0: none.
-- P1 resolved: postprocessing produced black WebGL frames; the unstable pass was removed while ACES exposure and renderer lighting were retained.
+- P1 resolved: postprocessing produced black WebGL frames; the unstable pass was removed while ACES exposure and renderer lighting were retained. (A stable, quality-gated bloom + SMAA pass was reintroduced later — see the 2026-09-18 follow-up below.)
 - P1 resolved: collapsed podiums and zero-scale shadow casters produced giant black slabs and triangular shadow acne; collapsed meshes now become non-degenerate hidden instances and deterministic rubble.
 - P1 resolved: the cloud camera clipped the cap and the volume read as a pawn; the camera framing and unified toroidal/lobed cap were corrected, with a shallow source-coupled base surge.
 - P1 resolved: 768 px setup was a narrow desktop rail; it is now a full-width, scrollable bottom sheet with the run action always reachable.
@@ -38,7 +38,7 @@ Both pairs were inspected together in `setup-before-after-exact.jpg`. The implem
 - P2 resolved: timeline scrubbing changed cinematic framing; Field, Ground zero, and Cloud are explicit stable camera modes.
 - P3 accepted: Three.js emits an upstream `THREE.Clock` deprecation warning from the current React Three Fiber stack. There are no shader errors, page errors, or deprecated shadow-map warnings from application code.
 
-## Verification
+## Verification (2026-08-25 baseline)
 
 - `npm run verify`: passed — 64 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
 - `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
@@ -47,3 +47,28 @@ Both pairs were inspected together in `setup-before-after-exact.jpg`. The implem
 - Live browser QA: no black frames; readable fireball; intact field context; explicit cloud framing; surface-coupled destruction without giant slab or shard artifacts.
 
 final result: passed
+
+## Follow-up — 2026-09-18 visual / feel wave
+
+Five waves of visual, animation, physics, and feel work landed on top of the fidelity recovery above, followed by a sky/lighting pass and an audio pass. Captures: `artifacts/hitlist/` (`w1-*` … `w6-*`).
+
+- **Detonation impact.** Quality-gated bloom + SMAA (`src/scene/Post.tsx`, skipped at `safe` quality); blackbody fireball ramp; rebuilt mushroom-cloud SDF; turbulent shock; longer, wider detonation and cloud camera framing.
+- **Destruction payoff.** Progressive collapse poses, instanced collapse dust, outward-velocity debris, coupled fire/ember/smoke seeds, grain-textured fallout, building color gated on shock arrival.
+- **World beauty.** Earth-tone terrain palette with per-district tinting, broader building tint variation, dashed overlay rings, redesigned probe marker.
+- **Feel and UX.** Keyboard shortcuts (`src/ui/useHotkeys.ts`), Skip during the launch cinematic, honest effective-rate readout, ambient visible-fields legend, click-to-probe on buildings, yield-scaled rumble, reduced-motion-aware transitions.
+- **Sky and light.** Real solar arc (low at dawn/dusk), sky-derived PMREM environment per time-of-day, and a procedural sun/moon sprite.
+- **Physics honesty.** Far-field blast falloff blends toward acoustic R⁻¹, cloud cap saturates toward the tropopause, crater note corrected, fallout wind clamp aligned with the model, report memoized for probing. `docs/MODEL.md` updated in the same change.
+- **Audio.** A shared, gesture-gated Web Audio engine (`src/audio/`) synthesizes a shock crack, sweeping whoosh, sub-bass, and yield-scaled rumble timed to the shock's arrival at the field camera, plus a probe blip. Pure scaling math in `design.ts` is unit-tested; no audio assets are packaged.
+- **Destruction depth.** Collapse now leans away from ground zero, severe and collapsed failures stagger by seed as a cascade rather than failing at once, debris is flung outward, and facades shatter window-by-window through a per-instance damage attribute.
+- **Stability & resilience.** App-level and field-level error boundaries with themed fallbacks, WebGL context-loss/restore handling with a HUD notice, a guarded PMREM probe, and self-hosted IBM Plex fonts (no runtime CDN fetch).
+
+### Current verification
+
+- `npm run verify`: passed — 81 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
+- `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
+- Bundle: main 102.7 / 105 KiB gzip; lazy scene 342.6 / 360 KiB gzip.
+- Packaged visual assets: 4.97 / 6 MiB.
+
+### Code health pass
+
+A dead-code and duplication review followed the audio and destruction waves. Removed: unused exports (`city/generate` street constants, unused `sim/units` conversions, `BlastPsi`, `glossaryById`, `taperedBlock`, the `runtimeClock` launch channel, `controls` Panel/Stat/Dock, the `city/index` barrel, `setLesson`), and the never-read `Building.floors`/`cols` fields. Centralized: `playbackRate`/`MAX_SIM_TIME_S`/`classifyTimeOfDay` (`sim/timeline`), `hidden`/`dummy` (`scene/instancing`), `isSurfaceBurst`, `FIREBALL_PSI`, `CAMERA_FAR`/`CAMERA_FOV_DEG`, `SHOCK_CULL_M`, LOS shadow/origin constants, and podium helpers. Every instanced building layer now routes through `buildingVisualEvent` with a precomputed range, and `resolveHob` is memoized. No behavior change; all gates and captures re-verified (`artifacts/hitlist/cleanup-*`).

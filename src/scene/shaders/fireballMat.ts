@@ -68,12 +68,12 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
       }
 
       vec3 blackbody(float cool, float pulse){
-        vec3 hot = vec3(2.15, 1.72, 1.22);
-        vec3 mid = vec3(1.42, 0.48, 0.10);
-        vec3 soot = vec3(0.16, 0.07, 0.03);
-        vec3 col = mix(hot, mid, smoothstep(0.08, 0.55, cool));
-        col = mix(col, soot, smoothstep(0.48, 1.0, cool));
-        return col * (0.88 + pulse * 0.55);
+        vec3 hot = vec3(1.55, 1.06, 0.62);
+        vec3 mid = vec3(1.18, 0.42, 0.09);
+        vec3 soot = vec3(0.16, 0.06, 0.025);
+        vec3 col = mix(hot, mid, smoothstep(0.05, 0.52, cool));
+        col = mix(col, soot, smoothstep(0.52, 1.0, cool));
+        return col * (0.75 + pulse * 0.7);
       }
 
       void main(){
@@ -97,20 +97,27 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
           vec3 p = ro + rd * (t0 + (float(i) + 0.5 + jitter * 0.55) * dt);
           if (uSurface > 0.5 && p.y < -0.02) continue;
           float rad = length(p);
-          float boil = fbm(p * 3.4 + vec3(0.0, uTime * 0.55, uTime * 0.22));
-          float core = 1.0 - smoothstep(0.12, 0.62 + boil * 0.18, rad);
-          float shell = smoothstep(0.45, 0.78, rad) * (1.0 - smoothstep(0.82, 1.0, rad));
-          float dens = core * 1.35 + shell * 0.55 * (0.55 + boil);
-          dens *= 1.0 - uCool * 0.55;
+          // Two octaves at different scales give the surface a boiling,
+          // turbulent skin instead of a smooth ball.
+          float boil = fbm(p * 3.1 + vec3(0.0, uTime * 0.5, uTime * 0.2));
+          float gnarl = fbm(p * 8.5 - vec3(uTime * 0.35, 0.0, uTime * 0.3));
+          float core = 1.0 - smoothstep(0.10, 0.5 + boil * 0.22, rad);
+          float shell = smoothstep(0.42, 0.74, rad) * (1.0 - smoothstep(0.78, 1.0, rad));
+          float dens = core * 1.5 + shell * 0.6 * (0.45 + boil * 0.8 + gnarl * 0.3);
+          dens *= 1.0 - uCool * 0.5;
           vec3 emit = blackbody(uCool, uPulse);
-          emit = mix(emit, vec3(0.9, 0.25, 0.04), shell * (1.0 - uCool));
+          emit = mix(emit, vec3(1.0, 0.3, 0.05), shell * (1.0 - uCool));
+          // Hot core reads brighter and whiter; the cooler shell keeps its hue.
+          emit *= mix(1.45, 0.75, clamp(rad, 0.0, 1.0));
           float a = 1.0 - exp(-dens * dt * 2.35);
+          // Hue-preserving compositing: bright emission rolls off without
+          // flattening every channel to pure white.
           col += emit * a * (1.0 - alpha);
           alpha += a * (1.0 - alpha);
           if (alpha > 0.97) break;
         }
-        col = 1.0 - exp(-col * 0.82);
-        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.96) * uFade);
+        col = col / (1.0 + col * 0.62);
+        gl_FragColor = vec4(col, clamp(alpha, 0.0, 0.86) * uFade);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }

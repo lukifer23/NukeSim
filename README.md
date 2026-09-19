@@ -44,9 +44,25 @@ npm run preview
 | Historical delivery context | Separate non-operational context module; the core simulation begins at the scenario |
 | Fission fraction | Fallout and prompt source term |
 | Wind / visibility | Plume cartoon; thermal transmittance |
+| Time of day | Solar angle, shadow direction, and the sky-derived reflection palette |
 | City | Density, climate, and (on Kite Pass) a ridge that actually shadows |
+| Camera view | Field, Ground zero, and Cloud framing only — never a model result |
 
 Historical presets: Little Boy, Fat Man, Ivy King, Castle Bravo, Tsar Bomba.
+
+## Keyboard
+
+| Key | Action |
+|---|---|
+| `Space` | Play / pause the field |
+| `←` / `→` | Scrub back / forward (pauses playback) |
+| `1` / `2` / `3` | Field / Ground zero / Cloud camera |
+| `B` `T` `R` `F` `L` | Toggle blast, thermal, radiation, fallout, fireball overlays |
+| `K` | Skip the launch cinematic |
+
+## Audio
+
+Blast sound is synthesized in the browser, not loaded from assets: a shock crack, a sweeping whoosh, sub-bass, and a yield-scaled rumble, all timed so the peak lands when the shock actually reaches the field camera. A short blip confirms each probe. Audio starts on the Run gesture (browser autoplay policy) and the Setup **mute** toggle silences everything.
 
 ## What the numbers mean
 
@@ -67,15 +83,16 @@ Glasstone & Dolan, *The Effects of Nuclear Weapons*, 1977; Fletcher et al., CEX-
 
 ## Stack
 
-Vite 8 · React 19 · TypeScript · Three.js / React Three Fiber · Zustand · Tailwind 4 · Lucide · Vitest
+Vite 8 · React 19 · TypeScript · Three.js / React Three Fiber · @react-three/postprocessing · Zustand · Tailwind 4 · Lucide · Vitest
 
 ```
 src/sim     pure physics, no React, no Three
 src/learn   pure mission evaluation and local progress contract
 src/city    deterministic generator
 src/scene   WebGL world
+src/audio   synthesized blast and probe sound
 src/ui      bench, probe, academy, about
-docs/       model card and city notes
+docs/       model card, city notes, asset provenance
 ```
 
-The simulation uses one progressive **Setup** surface instead of competing workspace tabs. Environment controls stay available in the same sheet, collapsed until needed. Renderer quality may adapt before a run, then locks for that run so a comparison cannot change appearance midway through playback. Packaged texture sources and hashes are recorded in [`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md).
+The simulation uses one progressive **Setup** surface instead of competing workspace tabs. Environment controls stay available in the same sheet, collapsed until needed. Renderer quality may adapt before a run, then locks for that run so a comparison cannot change appearance midway through playback. Error boundaries isolate the field from the shell, a lost WebGL context surfaces a recoverable notice, and every asset — textures and fonts — is packaged locally, so the app makes no runtime CDN fetches. Texture and font sources are recorded in [`docs/ASSET_PROVENANCE.md`](docs/ASSET_PROVENANCE.md).

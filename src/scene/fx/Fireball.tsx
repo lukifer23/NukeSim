@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSim } from '../../state/store'
-import { fireballRadiusAtTimeM, fireballRiseM } from '../../sim'
+import { isSurfaceBurst, fireballRadiusAtTimeM, fireballRiseM } from '../../sim'
 import { makeFireballMaterial } from '../shaders/fireballMat'
 import { fireballPulse } from './pulse'
 import { getRenderTime } from '../runtimeClock'
@@ -15,7 +15,7 @@ export function Fireball() {
   const core = useMemo(() => {
     const m = new THREE.Mesh(
       new THREE.SphereGeometry(1, 24, 16),
-      new THREE.MeshBasicMaterial({ color: '#ffd59a', transparent: true, opacity: 0, depthWrite: false, depthTest: false }),
+      new THREE.MeshBasicMaterial({ color: '#ffc47a', transparent: true, opacity: 0, depthWrite: false, depthTest: false }),
     )
     m.frustumCulled = false
     m.renderOrder = 2
@@ -29,7 +29,7 @@ export function Fireball() {
     const s = useSim.getState()
     const t = getRenderTime()
     const hob = s.hobResolved()
-    const surface = hob <= 1
+    const surface = isSurfaceBurst(hob)
     const r = Math.max(fireballRadiusAtTimeM(s.yieldKt, t, surface), 1)
     const { pulse, cool } = fireballPulse(t, s.yieldKt)
     const fade = 1 - THREE.MathUtils.smoothstep(cool, 0.8, 1)
@@ -49,7 +49,7 @@ export function Fireball() {
     core.scale.set(cr, cr * flatten, cr)
     core.position.set(offset.x, y, offset.z)
     core.visible = alive && !reduced && cool < 0.82
-    ;(core.material as THREE.MeshBasicMaterial).opacity = core.visible ? (1 - cool) * 0.68 * fade : 0
+    ;(core.material as THREE.MeshBasicMaterial).opacity = core.visible ? (1 - cool) * 0.5 * fade : 0
     mat.uniforms.uTime.value = t
     mat.uniforms.uPulse.value = pulse
     mat.uniforms.uCool.value = cool

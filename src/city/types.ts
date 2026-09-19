@@ -34,9 +34,7 @@ export type Building = {
   occupancy: number
   district: District
   variant: BuildingVariant
-  floors: number
   seed: number
-  cols: number
   podiumH: number
 }
 

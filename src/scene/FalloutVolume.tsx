@@ -19,7 +19,7 @@ export function FalloutVolume() {
           points={c.points}
           color={c.color}
           wind={wind}
-          opacity={0.18 - i * 0.025}
+          opacity={0.14 - i * 0.018}
           heightAt={city.heightAt}
           ox={offset.x}
           oz={offset.z}
@@ -80,8 +80,13 @@ function FalloutPoly({
           float spread = max(180.0, arrival * 0.18);
           float prog = clamp((uTime - arrival + spread) / spread, 0.0, 1.0);
           if (prog <= 0.001) discard;
-          float grain = 0.82 + 0.18 * hash(vGz * 0.02);
-          gl_FragColor = vec4(uColor, uOpacity * prog * grain);
+          // Reads as settled contamination: patchy, dust-toned, never a solid
+          // dark sheet lying over the city.
+          float grain = 0.55 + 0.45 * hash(floor(vGz * 0.012));
+          float speck = step(0.22, hash(floor(vGz * 0.28)));
+          float a = uOpacity * prog * (0.6 + 0.4 * grain) * (0.72 + 0.28 * speck);
+          vec3 col = mix(uColor, vec3(0.42, 0.37, 0.33), 0.28 * grain);
+          gl_FragColor = vec4(col, a);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }

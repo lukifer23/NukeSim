@@ -31,6 +31,14 @@ export function fireballTouchesGround(yieldKt: number, hobM: number): boolean {
   return hobM < fireballPhysicalRadiusM(yieldKt)
 }
 
+/**
+ * Surface / near-surface burst flag. This is the *renderer's* ground-coupling
+ * switch; the physical "fireball touches ground" test is fireballTouchesGround.
+ */
+export function isSurfaceBurst(hobM: number): boolean {
+  return hobM <= 1
+}
+
 /** Thermal-pulse duration, Glasstone §7.85: t ≈ 0.417 W^0.44 s. */
 export function thermalPulseDurationS(yieldKt: number): number {
   return 0.417 * yieldKt ** 0.44
