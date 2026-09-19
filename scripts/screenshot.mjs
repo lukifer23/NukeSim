@@ -59,7 +59,7 @@ await page.waitForTimeout(600)
 // 1 Mt surface burst
 await page.getByRole('button', { name: 'Setup', exact: true }).click({ force: true })
 await page.getByRole('button', { name: '1 Mt', exact: true }).click({ force: true })
-await page.getByRole('button', { name: 'Surface' }).click({ force: true })
+await page.getByRole('button', { name: 'Surface', exact: true }).click({ force: true })
 await page.getByRole('button', { name: 'Run field' }).click({ force: true })
 await page.getByRole('button', { name: 'Pause' }).click({ force: true })
 await (jump('1 s'), shot('1mt-surface-fireball'))
