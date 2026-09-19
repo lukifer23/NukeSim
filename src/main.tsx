@@ -4,9 +4,12 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import { App } from './app/App'
 
+// Strip the trailing slash so '/' and '/NukeSim/' both work as a basename.
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <App />
     </BrowserRouter>
   </StrictMode>,

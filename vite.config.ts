@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  // The GitHub Pages project site is served from /NukeSim/; local dev and the
+  // test servers stay at the root unless VITE_BASE says otherwise.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react(), tailwindcss()],
   // Keep three addons pre-bundled so a new import cannot trigger a Vite dep
   // re-optimization reload mid-session (which resets app state under test).

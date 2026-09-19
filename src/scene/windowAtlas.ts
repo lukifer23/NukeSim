@@ -64,7 +64,7 @@ function tex(c: HTMLCanvasElement): THREE.CanvasTexture {
 }
 
 function loadTexture(file: string, srgb: boolean, repeatX: number, repeatY: number): THREE.Texture {
-  const texture = new THREE.TextureLoader().load(`/assets/materials/${file}`)
+  const texture = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/materials/${file}`)
   texture.wrapS = THREE.RepeatWrapping
   texture.wrapT = THREE.RepeatWrapping
   texture.repeat.set(repeatX, repeatY)
