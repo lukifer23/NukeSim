@@ -24,6 +24,12 @@ describe('atmosphere', () => {
       expect(noon.exposure).toBeGreaterThan(0.5)
     }
   })
+
+  it('reuses the memoized look for unchanged inputs', () => {
+    const biome = CITIES[0]
+    expect(atmosphereLook(0.5, biome)).toBe(atmosphereLook(0.5, biome))
+    expect(atmosphereLook(0.5, biome)).not.toBe(atmosphereLook(0.8, biome))
+  })
 })
 
 describe('vegetation', () => {

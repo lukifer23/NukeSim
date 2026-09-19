@@ -28,8 +28,23 @@ export function lightingAmount(day: number): number {  const u = Math.min(1, Mat
   return Math.max(0.12, 1 - ((u - 0.66) / 0.34) * 0.85)
 }
 
+// Called several times per frame by lighting-driven layers (water, mushroom,
+// exposure). Memoize the last (day, biome) so those frames reuse one object
+// instead of rebuilding HSL strings and an allocation each time.
+let lookKey = ''
+let lookCache: AtmosphereLook | null = null
+
 /** Documentary lighting from time-of-day (0 night → dawn → noon → dusk) and biome climate. */
 export function atmosphereLook(day: number, biome: CityBiome): AtmosphereLook {
+  const key = `${day}|${biome.id}`
+  if (lookCache && lookKey === key) return lookCache
+  const result = computeAtmosphereLook(day, biome)
+  lookKey = key
+  lookCache = result
+  return result
+}
+
+function computeAtmosphereLook(day: number, biome: CityBiome): AtmosphereLook {
   const t = lightingAmount(day)
   const haze = 1 - Math.min(1, biome.visibilityKm / 28)
   const bucket = classifyTimeOfDay(day)

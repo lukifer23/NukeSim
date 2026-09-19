@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useSim } from '../state/store'
 import { sampleCasualties } from '../sim'
+import { encodeScenario } from '../sim/scenario'
 import { formatNum, formatRange, formatYield } from './format'
 import { SOURCES } from '../data/sources'
 import { cityById } from '../data/cities'
@@ -64,6 +66,7 @@ export function Debrief() {
           <button className="border border-white/15 px-4 py-2 text-sm" onClick={() => s.setPhase('explore')}>
             Walk the wreckage
           </button>
+          <CopySummary text={summary(s, stats, ring5?.radiusM, ring1?.radiusM)} />
         </div>
       </div>
     </div>
@@ -118,6 +121,46 @@ function MissionDebrief() {
       </div>
     </div>
   )
+}
+
+function CopySummary({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      className="border border-white/15 px-4 py-2 text-sm"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text)
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 2200)
+        } catch {
+          // Clipboard access can be denied; the field still works.
+        }
+      }}
+    >
+      {copied ? 'Copied' : 'Copy results'}
+    </button>
+  )
+}
+
+function summary(
+  s: ReturnType<typeof useSim.getState>,
+  stats: { fatalities: number; injuries: number; population: number },
+  ring5?: number,
+  ring1?: number,
+): string {
+  const url = new URL(window.location.href)
+  url.search = encodeScenario({ ...s.scenario(), cityId: s.cityId, munitionId: s.munitionId })
+  const prompt = s.report.rings.find((ring) => ring.id === 'rad-500')
+  return [
+    `NukeSim — ${formatYield(s.report.yieldKt)} over ${cityById(s.cityId).name}`,
+    `HOB ${Math.round(s.report.hobM)} m · ${s.report.fireballTouchesGround ? 'surface-coupled' : 'airburst'}`,
+    `5 psi ${formatRange(ring5 ?? 0)} · 1 psi ${formatRange(ring1 ?? 0)} · fireball ${formatRange(s.report.fireballMaxRadiusM)}`,
+    `Prompt 500 rem ${formatRange(prompt?.radiusM ?? 0)} · local fallout ${s.report.fireballTouchesGround ? 'yes' : 'negligible'}`,
+    `Est. blast fatalities ${formatNum(stats.fatalities)} · injuries ${formatNum(stats.injuries)}`,
+    `Model ${MODEL_VERSION}. Educational scaling laws, not a forecast or targeting tool.`,
+    url.toString(),
+  ].join('\n')
 }
 
 function Stat({ k, v }: { k: string; v: string }) {

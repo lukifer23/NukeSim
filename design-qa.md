@@ -61,12 +61,14 @@ Five waves of visual, animation, physics, and feel work landed on top of the fid
 - **Audio.** A shared, gesture-gated Web Audio engine (`src/audio/`) synthesizes a shock crack, sweeping whoosh, sub-bass, and yield-scaled rumble timed to the shock's arrival at the field camera, plus a probe blip. Pure scaling math in `design.ts` is unit-tested; no audio assets are packaged.
 - **Destruction depth.** Collapse now leans away from ground zero, severe and collapsed failures stagger by seed as a cascade rather than failing at once, debris is flung outward, and facades shatter window-by-window through a per-instance damage attribute.
 - **Stability & resilience.** App-level and field-level error boundaries with themed fallbacks, WebGL context-loss/restore handling with a HUD notice, a guarded PMREM probe, and self-hosted IBM Plex fonts (no runtime CDN fetch).
+- **Performance.** `atmosphereLook` is memoized so the lighting-driven layers stop rebuilding HSL objects every frame; all four building layers early-out once every instance has settled instead of rescanning the city each frame; shadow-map resolution scales with the quality tier.
+- **UX polish.** An in-app keyboard-shortcut panel (`?` or the header button), scenario autosave that resumes the last setup on reload while keeping the safety gate, and a debrief **Copy results** action with a shareable link. The shortcut and debrief panels are lazy chunks, which kept the main bundle under budget.
 
 ### Current verification
 
-- `npm run verify`: passed — 81 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
+- `npm run verify`: passed — 85 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
 - `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
-- Bundle: main 102.7 / 105 KiB gzip; lazy scene 342.6 / 360 KiB gzip.
+- Bundle: main 102.3 / 105 KiB gzip; lazy scene 342.8 / 360 KiB gzip.
 - Packaged visual assets: 4.97 / 6 MiB.
 
 ### Code health pass

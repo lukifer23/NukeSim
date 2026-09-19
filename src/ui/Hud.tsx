@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useSim } from '../state/store'
 import { formatYield } from './format'
 import { cityById } from '../data/cities'
@@ -14,13 +14,16 @@ import { GuidedPanel, MissionChip } from './GuidedPanel'
 import { ComparePanel } from './ComparePanel'
 import { ModelDrawer } from './ModelDrawer'
 import { FieldLegend } from './FieldLegend'
-import { Debrief } from './Debrief'
 import type { Workspace } from '../state/store'
 import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Search, Telescope } from 'lucide-react'
 import type { CameraMode } from '../state/store'
 import { useHotkeys } from './useHotkeys'
 
 type FieldPanel = 'setup' | 'experience' | 'inspector' | null
+
+// On-demand only, so it stays out of the main bundle.
+const ShortcutsOverlay = lazy(() => import('./ShortcutsOverlay').then((m) => ({ default: m.ShortcutsOverlay })))
+const Debrief = lazy(() => import('./Debrief').then((m) => ({ default: m.Debrief })))
 
 export function Hud() {
   const phase = useSim((s) => s.phase)
@@ -84,6 +87,13 @@ export function Hud() {
             <button className="text-body hover:text-signal-hot" onClick={() => setModelOpen(true)}>
               Model
             </button>
+            <button
+              className="text-body hover:text-signal-hot"
+              onClick={() => useSim.getState().toggleHelp()}
+              aria-label="Keyboard shortcuts"
+            >
+              ?
+            </button>
           </div>
         </nav>
       </header>
@@ -119,10 +129,17 @@ export function Hud() {
             <Timeline compact={watching} />
           </div>
         </div>
-        {debriefing && <Debrief />}
+        {debriefing && (
+          <Suspense fallback={null}>
+            <Debrief />
+          </Suspense>
+        )}
       </div>
       <Glossary />
       <ModelDrawer />
+      <Suspense fallback={null}>
+        <ShortcutsOverlay />
+      </Suspense>
       {contextLost && (
         <div className="pointer-events-auto absolute inset-x-0 top-16 z-30 flex justify-center px-4">
           <div className="ctx-lost" role="status">

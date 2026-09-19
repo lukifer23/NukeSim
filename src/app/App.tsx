@@ -4,6 +4,7 @@ import { Hud } from '../ui/Hud'
 import { CompactLanding } from '../ui/CompactLanding'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { useSim } from '../state/store'
+import { loadDraft } from '../state/draft'
 import { decodeScenario } from '../sim/scenario'
 
 const Scene = lazy(() => import('../scene/Scene').then((module) => ({ default: module.Scene })))
@@ -31,6 +32,12 @@ function Sandbox() {
     motion.addEventListener('change', apply)
     const shared = decodeScenario(window.location.search)
     if (shared) useSim.getState().loadSharedScenario(shared)
+    else {
+      // Resume the last setup, but keep the safety gate: the draft restores
+      // controls only, so the disclaimer still stands between a reload and a run.
+      const draft = loadDraft()
+      if (draft) useSim.getState().applyDraft(draft)
+    }
     return () => motion.removeEventListener('change', apply)
   }, [])
   if (compact) return <CompactLanding />

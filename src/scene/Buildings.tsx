@@ -140,6 +140,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
   )
   const lastK = useRef(new Float32Array(list.length))
   const done = useRef(new Uint8Array(list.length))
+  const remaining = useRef(list.length)
   const dmg = useRef<THREE.InstancedBufferAttribute | null>(null)
   const fieldSig = useSim((s) => s.runRevision)
   const picker = useProbePicker()
@@ -149,6 +150,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
     if (!mesh) return
     lastK.current = new Float32Array(list.length)
     done.current = new Uint8Array(list.length)
+    remaining.current = list.length
     resetIgnitionCache(String(fieldSig))
     bindFacade(mesh, list, 'tower')
     dmg.current = mesh.geometry.getAttribute('aDamage') as THREE.InstancedBufferAttribute
@@ -182,6 +184,7 @@ function BuildingLayer({ list }: { list: Building[] }) {
     const dayU = mat.userData.uDay as { value: number } | undefined
     if (dayU) dayU.value = s.timeOfDay
     if (!isLiveField(s.phase)) return
+    if (remaining.current === 0) return
     const hob = s.hobResolved()
     const t = getRenderTime()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
@@ -230,7 +233,10 @@ function BuildingLayer({ list }: { list: Building[] }) {
       mesh.setMatrixAt(i, tmp.matrix)
       mesh.setColorAt(i, cTmp)
       wrote = true
-      if (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock)) done.current[i] = 1
+      if (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock)) {
+        done.current[i] = 1
+        remaining.current -= 1
+      }
     })
     if (wrote) {
       mesh.instanceMatrix.needsUpdate = true
@@ -251,11 +257,13 @@ function RubbleLayer({ list }: { list: Building[] }) {
   const city = useSim((s) => s.city)
   const fieldSig = useSim((s) => s.runRevision)
   const done = useRef(new Uint8Array(list.length))
+  const remaining = useRef(list.length)
 
   useLayoutEffect(() => {
     const mesh = ref.current
     if (!mesh) return
     done.current = new Uint8Array(list.length)
+    remaining.current = list.length
     for (let i = 0; i < count; i++) mesh.setMatrixAt(i, hidden(tmp))
     mesh.instanceMatrix.needsUpdate = true
   }, [count, fieldSig, list.length, tmp])
@@ -265,6 +273,7 @@ function RubbleLayer({ list }: { list: Building[] }) {
     if (!mesh) return
     const s = useSim.getState()
     if (!isLiveField(s.phase)) return
+    if (remaining.current === 0) return
     const t = getRenderTime()
     const hob = s.hobResolved()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
@@ -310,7 +319,10 @@ function RubbleLayer({ list }: { list: Building[] }) {
         mesh.setColorAt(index, color)
       }
       wrote = true
-      if (k >= 1 || (k === 0 && range + SHOCK_CULL_M < shock)) done.current[buildingIndex] = 1
+      if (k >= 1 || (k === 0 && range + SHOCK_CULL_M < shock)) {
+        done.current[buildingIndex] = 1
+        remaining.current -= 1
+      }
     })
     if (wrote) {
       mesh.instanceMatrix.needsUpdate = true
@@ -332,6 +344,7 @@ function PodiumLayer({ list }: { list: Building[] }) {
   const tmp = useMemo(() => dummy(), [])
   const city = useSim((s) => s.city)
   const done = useRef(new Uint8Array(list.length))
+  const remaining = useRef(list.length)
   const dmg = useRef<THREE.InstancedBufferAttribute | null>(null)
   const fieldSig = useSim((s) => s.runRevision)
   const atlas = useMemo(() => buildingAtlas(cls, city.biome.id), [cls, city.biome.id])
@@ -346,6 +359,7 @@ function PodiumLayer({ list }: { list: Building[] }) {
     const mesh = ref.current
     if (!mesh) return
     done.current = new Uint8Array(list.length)
+    remaining.current = list.length
     bindFacade(mesh, list, 'podium')
     dmg.current = mesh.geometry.getAttribute('aDamage') as THREE.InstancedBufferAttribute
     if (!mesh.instanceColor) mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(list.length * 3), 3)
@@ -369,6 +383,7 @@ function PodiumLayer({ list }: { list: Building[] }) {
     const dayU = mat.userData.uDay as { value: number } | undefined
     if (dayU) dayU.value = s.timeOfDay
     if (!isLiveField(s.phase)) return
+    if (remaining.current === 0) return
     const hob = s.hobResolved()
     const t = getRenderTime()
     const shock = shockRadiusAtTimeM(s.yieldKt, hob, t)
@@ -400,7 +415,10 @@ function PodiumLayer({ list }: { list: Building[] }) {
       tmp.updateMatrix()
       mesh.setMatrixAt(i, tmp.matrix)
       wrote = true
-      if (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock)) done.current[i] = 1
+      if (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock)) {
+        done.current[i] = 1
+        remaining.current -= 1
+      }
     })
     if (wrote) {
       mesh.instanceMatrix.needsUpdate = true
@@ -427,11 +445,13 @@ function RoofLayer({ list }: { list: Building[] }) {
   const roofColor = useMemo(() => new THREE.Color(CLASS_COLOR[cls] ?? '#888').multiplyScalar(0.52), [cls])
   const last = useRef(new Float32Array(list.length))
   const done = useRef(new Uint8Array(list.length))
+  const remaining = useRef(list.length)
   const fieldSig = useSim((s) => s.runRevision)
 
   const writeRoofs = useCallback((t: number, force: boolean) => {
     const s = useSim.getState()
     const live = isLiveField(s.phase)
+    if (!force && remaining.current === 0) return
     const hob = s.hobResolved()
     const shock = live ? shockRadiusAtTimeM(s.yieldKt, hob, t) : 0
     const fb = fireballMaxRadiusM(s.yieldKt, isSurfaceBurst(hob))
@@ -456,7 +476,10 @@ function RoofLayer({ list }: { list: Building[] }) {
       }
       if (!force && last.current[i] === k && r > shock + SHOCK_CULL_M) return
       last.current[i] = k
-      if (live && (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock))) done.current[i] = 1
+      if (live && (k >= 1 || (k === 0 && r + SHOCK_CULL_M < shock))) {
+        done.current[i] = 1
+        remaining.current -= 1
+      }
       const lean = live && r > 1 ? { x: (b.x - ox) / r, z: (b.z - oz) / r } : undefined
       const pose = damagePose(b, damage, k, lean)
       const hide = pose.scaleY < 0.08
@@ -503,12 +526,14 @@ function RoofLayer({ list }: { list: Building[] }) {
   useLayoutEffect(() => {
     last.current = new Float32Array(list.length)
     done.current = new Uint8Array(list.length)
+    remaining.current = list.length
     writeRoofs(0, true)
   }, [fieldSig, list.length, writeRoofs])
 
   useFrame(() => {
     const s = useSim.getState()
     if (!isLiveField(s.phase)) return
+    if (remaining.current === 0) return
     writeRoofs(getRenderTime(), false)
   })
 

@@ -14,6 +14,16 @@ export function useHotkeys() {
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const s = useSim.getState()
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault()
+        s.toggleHelp()
+        return
+      }
+      if (e.key === 'Escape') {
+        if (s.helpOpen) s.setHelpOpen(false)
+        return
+      }
+      if (s.helpOpen) return
       switch (e.key) {
         case ' ':
         case 'Spacebar':

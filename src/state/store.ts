@@ -18,6 +18,7 @@ import type { GeneratedCity } from '../city/types'
 import type { BuildingClass } from '../sim/types'
 import { BuildingClass as BC } from '../sim/types'
 import { setAudioMuted, unlockAudio } from '../audio/unlock'
+import { saveDraft, type ScenarioDraft } from './draft'
 import type { SharedScenario } from '../sim/scenario'
 import { LESSONS, resolvedLessonSetup, hobModeFromLesson } from '../data/lessons'
 import {
@@ -144,9 +145,13 @@ type SimState = {
   clearComparison: () => void
   setModelOpen: (open: boolean) => void
   loadSharedScenario: (scenario: SharedScenario) => void
+  applyDraft: (draft: ScenarioDraft) => void
   setShowGhost: (v: boolean) => void
   setMuted: (v: boolean) => void
   setContextLost: (v: boolean) => void
+  helpOpen: boolean
+  setHelpOpen: (v: boolean) => void
+  toggleHelp: () => void
   scenario: () => ScenarioInput
   hobResolved: () => number
 }
@@ -181,10 +186,39 @@ function updatePhysicalScenario(
     qualityLocked: false,
   })
   set({ report: computeEffects(inputFrom(get())) })
+  persistDraft(get())
 }
 
 function cityFor(id: CityId): GeneratedCity {
   return generateCity(cityById(id))
+}
+
+/** Persist the current physical scenario so a reload resumes the setup. */
+function persistDraft(s: {
+  cityId: CityId
+  munitionId: string
+  yieldKt: number
+  hobMode: BurstModeT
+  customHobM: number
+  fissionFraction: number
+  windSpeedMps: number
+  windDirDeg: number
+  visibilityKm: number
+  timeOfDay: number
+}): void {
+  saveDraft({
+    schemaVersion: 1,
+    cityId: s.cityId,
+    munitionId: s.munitionId,
+    yieldKt: s.yieldKt,
+    hobMode: s.hobMode,
+    customHobM: s.customHobM,
+    fissionFraction: s.fissionFraction,
+    windSpeedMps: s.windSpeedMps,
+    windDirDeg: s.windDirDeg,
+    visibilityKm: s.visibilityKm,
+    timeOfDay: s.timeOfDay,
+  })
 }
 
 function inputFrom(s: {
@@ -253,6 +287,7 @@ export const useSim = create<SimState>((set, get) => ({
   showGhost: true,
   muted: false,
   contextLost: false,
+  helpOpen: false,
   report: computeEffects(inputFrom(initialSlice)),
 
   accept: () => set({ accepted: true, phase: 'city-select' }),
@@ -294,7 +329,10 @@ export const useSim = create<SimState>((set, get) => ({
   setFission: (f) => updatePhysicalScenario(set, get, { fissionFraction: f }),
   setWind: (mps, deg) => updatePhysicalScenario(set, get, { windSpeedMps: mps, windDirDeg: deg }),
   setVisibility: (km) => updatePhysicalScenario(set, get, { visibilityKm: km }),
-  setTimeOfDay: (t) => set({ timeOfDay: t }),
+  setTimeOfDay: (t) => {
+    set({ timeOfDay: t })
+    persistDraft(get())
+  },
   toggleOverlay: (k) => set((s) => ({ overlays: { ...s.overlays, [k]: !s.overlays[k] } })),
   setSimTime: (t) => set({ simTime: t }),
   setPlaying: (v) => set({ playing: v }),
@@ -484,6 +522,8 @@ export const useSim = create<SimState>((set, get) => ({
     set({ muted })
   },
   setContextLost: (contextLost) => set({ contextLost }),
+  setHelpOpen: (helpOpen) => set({ helpOpen }),
+  toggleHelp: () => set((s) => ({ helpOpen: !s.helpOpen })),
   saveComparison: () => {
     const s = get()
     const input = inputFrom(s)
@@ -533,6 +573,24 @@ export const useSim = create<SimState>((set, get) => ({
       runRevision: get().runRevision + 1,
       report,
     })
+  },
+  applyDraft: (draft) => {
+    const city = cityFor(draft.cityId)
+    set({
+      cityId: draft.cityId,
+      city,
+      munitionId: draft.munitionId,
+      yieldKt: draft.yieldKt,
+      hobMode: draft.hobMode,
+      customHobM: draft.customHobM,
+      fissionFraction: draft.fissionFraction,
+      windSpeedMps: draft.windSpeedMps,
+      windDirDeg: draft.windDirDeg,
+      visibilityKm: draft.visibilityKm,
+      timeOfDay: draft.timeOfDay,
+      impactOffset: { ...city.gz },
+    })
+    set({ report: computeEffects(inputFrom(get())) })
   },
   scenario: () => inputFrom(get()),
   hobResolved: () => resolveHob(get().yieldKt, get().hobMode, get().customHobM, get().visibilityKm),

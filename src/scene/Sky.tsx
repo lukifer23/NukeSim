@@ -12,11 +12,26 @@ export function Atmosphere() {
   const timeOfDay = useSim((s) => s.timeOfDay)
   const biome = useSim((s) => s.city.biome)
   const reduced = useSim((s) => s.reducedMotion)
+  const quality = useSim((s) => s.renderQuality)
   const { gl, camera, scene } = useThree()
   const look = useMemo(() => atmosphereLook(timeOfDay, biome), [timeOfDay, biome])
   const extent = biome.extentM
   const lookRef = useRef(look)
   lookRef.current = look
+  const sun = useRef<THREE.DirectionalLight>(null)
+
+  // Shadow resolution follows the quality tier. Changing the map size only
+  // reallocates the shadow target, so it never triggers a shader recompile.
+  useEffect(() => {
+    const light = sun.current
+    if (!light) return
+    const size = quality === 'high' ? 2048 : quality === 'balanced' ? 1024 : 512
+    if (light.shadow.mapSize.x !== size) {
+      light.shadow.mapSize.set(size, size)
+      light.shadow.map?.dispose()
+      light.shadow.map = null
+    }
+  }, [quality])
 
   // Sky-derived PMREM environment, rebuilt only when the time-of-day bucket or
   // biome changes, so steel and glass reflect the current sky instead of a
@@ -109,6 +124,7 @@ export function Atmosphere() {
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiInt]} />
       <ambientLight intensity={look.ambient} />
       <directionalLight
+        ref={sun}
         position={look.sunPos}
         intensity={look.sunInt}
         color={look.sun}

@@ -59,6 +59,11 @@ Historical presets: Little Boy, Fat Man, Ivy King, Castle Bravo, Tsar Bomba.
 | `1` / `2` / `3` | Field / Ground zero / Cloud camera |
 | `B` `T` `R` `F` `L` | Toggle blast, thermal, radiation, fallout, fireball overlays |
 | `K` | Skip the launch cinematic |
+| `?` | Open the in-app shortcut panel (also a `?` button in the header) |
+
+## Session
+
+The last scenario setup is saved locally and restored on reload, so a refresh resumes your yield, burst height, environment, and city. The safety disclaimer is still shown before a run. The **Debrief** panel has a **Copy results** action that puts a plain-text summary and a shareable scenario link on the clipboard.
 
 ## Audio
 
