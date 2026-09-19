@@ -13,12 +13,26 @@ const valid = {
   windDirDeg: 35,
   visibilityKm: 12,
   timeOfDay: 0.6,
+  overlays: { blast: true, thermal: true, radiation: false, fallout: false, fireball: true },
+  cameraMode: 'cloud',
 }
 
 describe('scenario draft', () => {
   it('round-trips a valid draft', () => {
     const parsed = parseDraft(JSON.stringify(valid))
     expect(parsed).toEqual(valid)
+  })
+
+  it('treats view state as optional for older drafts', () => {
+    const legacy: Record<string, unknown> = { ...valid }
+    delete legacy.overlays
+    delete legacy.cameraMode
+    expect(parseDraft(JSON.stringify(legacy))).toEqual(legacy)
+
+    const malformed = parseDraft(JSON.stringify({ ...legacy, overlays: { blast: 'yes' }, cameraMode: 'orbit' }))
+    expect(malformed).not.toBeNull()
+    expect(malformed?.overlays).toBeUndefined()
+    expect(malformed?.cameraMode).toBeUndefined()
   })
 
   it('rejects missing, malformed, and unknown-field data', () => {

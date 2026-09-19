@@ -204,6 +204,8 @@ function persistDraft(s: {
   windDirDeg: number
   visibilityKm: number
   timeOfDay: number
+  overlays: Record<OverlayKey, boolean>
+  cameraMode: CameraMode
 }): void {
   saveDraft({
     schemaVersion: 1,
@@ -217,6 +219,8 @@ function persistDraft(s: {
     windDirDeg: s.windDirDeg,
     visibilityKm: s.visibilityKm,
     timeOfDay: s.timeOfDay,
+    overlays: s.overlays,
+    cameraMode: s.cameraMode,
   })
 }
 
@@ -293,7 +297,10 @@ export const useSim = create<SimState>((set, get) => ({
   report: computeEffects(inputFrom(initialSlice)),
 
   accept: () => set({ accepted: true, phase: 'city-select' }),
-  setCameraMode: (cameraMode) => set({ cameraMode }),
+  setCameraMode: (cameraMode) => {
+    set({ cameraMode })
+    persistDraft(get())
+  },
   setRenderQuality: (renderQuality) => {
     if (get().qualityLocked) return
     set({ renderQuality })
@@ -331,7 +338,10 @@ export const useSim = create<SimState>((set, get) => ({
     set({ timeOfDay: t })
     persistDraft(get())
   },
-  toggleOverlay: (k) => set((s) => ({ overlays: { ...s.overlays, [k]: !s.overlays[k] } })),
+  toggleOverlay: (k) => {
+    set((s) => ({ overlays: { ...s.overlays, [k]: !s.overlays[k] } }))
+    persistDraft(get())
+  },
   setSimTime: (t) => set({ simTime: t }),
   setPlaying: (v) => set({ playing: v }),
   setSpeed: (v) => set({ speed: v }),
@@ -581,6 +591,8 @@ export const useSim = create<SimState>((set, get) => ({
       visibilityKm: draft.visibilityKm,
       timeOfDay: draft.timeOfDay,
       impactOffset: { ...city.gz },
+      ...(draft.overlays ? { overlays: { ...draft.overlays } } : {}),
+      ...(draft.cameraMode ? { cameraMode: draft.cameraMode } : {}),
     })
     set({ report: computeEffects(inputFrom(get())) })
   },
@@ -594,6 +606,7 @@ export const useSim = create<SimState>((set, get) => ({
       timeOfDay: defaultTimeOfDay,
       impactOffset: { ...city.gz },
       overlays: { ...defaultOverlays },
+      cameraMode: 'field',
       probe: null,
       comparison: null,
       ghost: null,

@@ -2,8 +2,12 @@ import { clamp } from '../sim/units'
 import { BurstMode, type BurstMode as BurstModeT } from '../sim/types'
 import { CITIES, type CityId } from '../data/cities'
 import { MUNITIONS } from '../data/munitions'
+import type { CameraMode, OverlayKey } from './store'
 
 export const SCENARIO_DRAFT_KEY = 'nukesim.scenario-draft.v1'
+
+const OVERLAY_KEYS: OverlayKey[] = ['blast', 'thermal', 'radiation', 'fallout', 'fireball']
+const CAMERA_MODES = new Set<string>(['field', 'ground-zero', 'cloud'])
 
 export type ScenarioDraft = {
   schemaVersion: 1
@@ -17,6 +21,8 @@ export type ScenarioDraft = {
   windDirDeg: number
   visibilityKm: number
   timeOfDay: number
+  overlays?: Record<OverlayKey, boolean>
+  cameraMode?: CameraMode
 }
 
 const CITY_IDS = CITIES.map((city) => city.id)
@@ -39,6 +45,8 @@ export function parseDraft(raw: string | null): ScenarioDraft | null {
   if (typeof draft.hobMode !== 'string' || !HOB_MODES.has(draft.hobMode)) return null
   const numbers = [draft.yieldKt, draft.customHobM, draft.fissionFraction, draft.windSpeedMps, draft.windDirDeg, draft.visibilityKm, draft.timeOfDay]
   if (numbers.some((n) => typeof n !== 'number' || !Number.isFinite(n))) return null
+  const overlays = parseOverlays(draft.overlays)
+  const cameraMode = typeof draft.cameraMode === 'string' && CAMERA_MODES.has(draft.cameraMode) ? (draft.cameraMode as CameraMode) : undefined
   return {
     schemaVersion: 1,
     cityId: draft.cityId as CityId,
@@ -51,6 +59,22 @@ export function parseDraft(raw: string | null): ScenarioDraft | null {
     windDirDeg: clamp(draft.windDirDeg as number, 0, 359),
     visibilityKm: clamp(draft.visibilityKm as number, 2, 30),
     timeOfDay: clamp(draft.timeOfDay as number, 0, 1),
+    ...(overlays ? { overlays } : {}),
+    ...(cameraMode ? { cameraMode } : {}),
+  }
+}
+
+/** View state is additive: a draft without it keeps the free-play defaults. */
+function parseOverlays(value: unknown): Record<OverlayKey, boolean> | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const raw = value as Record<string, unknown>
+  if (!OVERLAY_KEYS.every((key) => typeof raw[key] === 'boolean')) return undefined
+  return {
+    blast: raw.blast as boolean,
+    thermal: raw.thermal as boolean,
+    radiation: raw.radiation as boolean,
+    fallout: raw.fallout as boolean,
+    fireball: raw.fireball as boolean,
   }
 }
 

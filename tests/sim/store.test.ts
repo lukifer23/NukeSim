@@ -224,9 +224,46 @@ describe('simulation run state', () => {
     expect(after.visibilityKm).toBe(defaults.visibilityKm)
     expect(after.timeOfDay).toBe(defaults.timeOfDay)
     expect(after.overlays).toEqual(defaults.overlays)
+    expect(after.cameraMode).toBe(defaults.cameraMode)
     expect(after.hasRun).toBe(false)
     expect(after.phase).toBe('bench')
     expect(after.simTime).toBe(0)
     expect(after.report.yieldKt).toBe(defaults.yieldKt)
+  })
+
+  it('applies persisted view state from a draft', () => {
+    useSim.getState().applyDraft({
+      schemaVersion: 1,
+      cityId: 'harbor',
+      munitionId: 'gravity-b61',
+      yieldKt: 10,
+      hobMode: 'custom',
+      customHobM: 400,
+      fissionFraction: 1,
+      windSpeedMps: 4,
+      windDirDeg: 180,
+      visibilityKm: 12,
+      timeOfDay: 0.4,
+      overlays: { blast: false, thermal: true, radiation: true, fallout: false, fireball: false },
+      cameraMode: 'cloud',
+    })
+    const s = useSim.getState()
+    expect(s.cameraMode).toBe('cloud')
+    expect(s.overlays).toEqual({ blast: false, thermal: true, radiation: true, fallout: false, fireball: false })
+
+    useSim.getState().applyDraft({
+      schemaVersion: 1,
+      cityId: 'harbor',
+      munitionId: 'gravity-b61',
+      yieldKt: 10,
+      hobMode: 'custom',
+      customHobM: 400,
+      fissionFraction: 1,
+      windSpeedMps: 4,
+      windDirDeg: 180,
+      visibilityKm: 12,
+      timeOfDay: 0.4,
+    })
+    expect(useSim.getState().cameraMode).toBe('cloud')
   })
 })
