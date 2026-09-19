@@ -503,6 +503,9 @@ export const useSim = create<SimState>((set, get) => ({
       report,
       probe: null,
       mission,
+      // A fresh run must reset the scene's per-instance damage counters, even
+      // when the scenario inputs did not change.
+      runRevision: s.runRevision + 1,
     })
   },
   skipCinema: () => {
@@ -573,6 +576,7 @@ export const useSim = create<SimState>((set, get) => ({
       runRevision: get().runRevision + 1,
       report,
     })
+    persistDraft(get())
   },
   applyDraft: (draft) => {
     const city = cityFor(draft.cityId)

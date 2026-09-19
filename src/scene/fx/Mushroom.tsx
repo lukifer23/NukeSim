@@ -7,6 +7,7 @@ import { makeVolumeCloudMaterial } from '../shaders/volumeCloudMat'
 import { getRenderTime } from '../runtimeClock'
 import { fireballPulse as pulseOf } from './pulse'
 import { atmosphereLook } from '../atmosphere'
+import { volumeSteps } from '../quality'
 
 const inv = new THREE.Matrix4()
 
@@ -37,7 +38,7 @@ export function Mushroom() {
     mat.uniforms.uSurface.value = surface ? 1 : 0
     mat.uniforms.uOpacity.value = 0.8 + 0.14 * grow
     mat.uniforms.uSun.value.set(look.sunPos[0], look.sunPos[1], look.sunPos[2])
-    mat.uniforms.uSteps.value = quality === 'high' ? 36 : quality === 'balanced' ? 28 : 18
+    mat.uniforms.uSteps.value = volumeSteps(quality)
     if (volume.current) {
       volume.current.visible = show
       // SDF spans object y ≈ -0.46 (stem foot) to +0.40 (cap centre); map that

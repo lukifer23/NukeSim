@@ -14,6 +14,7 @@ import { GuidedPanel, MissionChip } from './GuidedPanel'
 import { ComparePanel } from './ComparePanel'
 import { ModelDrawer } from './ModelDrawer'
 import { FieldLegend } from './FieldLegend'
+import { ErrorBoundary } from './ErrorBoundary'
 import type { Workspace } from '../state/store'
 import { BookOpen, Building2, ClipboardList, Cloud, Crosshair, Search, Telescope } from 'lucide-react'
 import type { CameraMode } from '../state/store'
@@ -131,14 +132,18 @@ export function Hud() {
         </div>
         {debriefing && (
           <Suspense fallback={null}>
-            <Debrief />
+            <ErrorBoundary label="debrief" renderFallback={() => <DebriefFallback />}>
+              <Debrief />
+            </ErrorBoundary>
           </Suspense>
         )}
       </div>
       <Glossary />
       <ModelDrawer />
       <Suspense fallback={null}>
-        <ShortcutsOverlay />
+        <ErrorBoundary label="shortcuts" renderFallback={() => null}>
+          <ShortcutsOverlay />
+        </ErrorBoundary>
       </Suspense>
       {contextLost && (
         <div className="pointer-events-auto absolute inset-x-0 top-16 z-30 flex justify-center px-4">
@@ -151,6 +156,22 @@ export function Hud() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function DebriefFallback() {
+  return (
+    <div className="debrief-sheet pointer-events-auto">
+      <div className="mx-auto max-w-2xl">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-signal">After-action</p>
+        <p className="mt-2 text-[14px] text-mute">
+          The debrief panel failed to load. The field, timeline, and controls still work.
+        </p>
+        <button className="mt-4 border border-white/15 px-4 py-2 text-sm" onClick={() => window.location.reload()}>
+          Reload
+        </button>
+      </div>
     </div>
   )
 }

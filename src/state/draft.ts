@@ -68,15 +68,6 @@ export function saveDraft(draft: ScenarioDraft, storage: Pick<Storage, 'setItem'
   }
 }
 
-export function clearDraft(storage: Pick<Storage, 'removeItem'> | null = safeStorage()): void {
-  if (!storage) return
-  try {
-    storage.removeItem(SCENARIO_DRAFT_KEY)
-  } catch {
-    // Ignore.
-  }
-}
-
 function safeStorage(): Storage | null {
   return typeof window === 'undefined' ? null : window.localStorage
 }

@@ -97,7 +97,7 @@ export function makeFireballMaterial(): THREE.ShaderMaterial {
           vec3 p = ro + rd * (t0 + (float(i) + 0.5 + jitter * 0.55) * dt);
           if (uSurface > 0.5 && p.y < -0.02) continue;
           float rad = length(p);
-          // Two octaves at different scales give the surface a boiling,
+          // Two fbm fields at different scales give the surface a boiling,
           // turbulent skin instead of a smooth ball.
           float boil = fbm(p * 3.1 + vec3(0.0, uTime * 0.5, uTime * 0.2));
           float gnarl = fbm(p * 8.5 - vec3(uTime * 0.35, 0.0, uTime * 0.3));

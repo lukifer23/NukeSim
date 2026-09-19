@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useSim } from '../state/store'
 import { X } from 'lucide-react'
 
@@ -18,13 +19,41 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 export function ShortcutsOverlay() {
   const open = useSim((s) => s.helpOpen)
   const setOpen = useSim((s) => s.setHelpOpen)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const restoreRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    restoreRef.current = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+    return () => restoreRef.current?.focus?.()
+  }, [open])
+
   if (!open) return null
   return (
-    <div className="shortcut-scrim" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onClick={() => setOpen(false)}>
+    <div
+      className="shortcut-scrim"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+      onClick={() => setOpen(false)}
+      onKeyDown={(event) => {
+        // Only the close button is focusable, so keep Tab inside the dialog.
+        if (event.key === 'Tab') {
+          event.preventDefault()
+          closeRef.current?.focus()
+        }
+      }}
+    >
       <div className="shortcut-card" onClick={(event) => event.stopPropagation()}>
         <header className="flex items-center justify-between">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-signal">Keyboard shortcuts</p>
-          <button className="icon-action text-mute hover:text-paper" onClick={() => setOpen(false)} aria-label="Close shortcuts">
+          <button
+            ref={closeRef}
+            className="icon-action text-mute hover:text-paper"
+            onClick={() => setOpen(false)}
+            aria-label="Close shortcuts"
+          >
             <X aria-hidden="true" size={16} />
           </button>
         </header>

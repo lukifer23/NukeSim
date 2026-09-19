@@ -6,6 +6,7 @@ import { isSurfaceBurst, fireballRadiusAtTimeM, fireballRiseM } from '../../sim'
 import { makeFireballMaterial } from '../shaders/fireballMat'
 import { fireballPulse } from './pulse'
 import { getRenderTime } from '../runtimeClock'
+import { volumeSteps } from '../quality'
 
 const inv = new THREE.Matrix4()
 
@@ -55,7 +56,7 @@ export function Fireball() {
     mat.uniforms.uCool.value = cool
     mat.uniforms.uFade.value = fade
     mat.uniforms.uSurface.value = surface ? 1 : 0
-    mat.uniforms.uSteps.value = quality === 'high' ? 36 : quality === 'balanced' ? 28 : 18
+    mat.uniforms.uSteps.value = volumeSteps(quality)
   })
 
   return (

@@ -32,6 +32,18 @@ describe('simulation run state', () => {
     expect(useSim.getState().qualityLocked).toBe(false)
   })
 
+  it('bumps the field revision on every launch so a re-run resets the scene', () => {
+    const s = useSim.getState()
+    s.accept()
+    useSim.getState().setPhase('bench')
+    const before = useSim.getState().runRevision
+    useSim.getState().startLaunch()
+    const afterFirst = useSim.getState().runRevision
+    expect(afterFirst).toBe(before + 1)
+    useSim.getState().startLaunch()
+    expect(useSim.getState().runRevision).toBe(afterFirst + 1)
+  })
+
   it('invalidates a completed run and clears a stale probe when physics inputs change', () => {
     const s = useSim.getState()
     s.accept()

@@ -45,6 +45,10 @@ export function Atmosphere() {
       pmrem = new THREE.PMREMGenerator(gl)
       const envScene = new THREE.Scene()
       sky = new SkyImpl()
+      // three-stdlib's Sky uses one module-level material for every instance.
+      // Clone it so this throwaway probe owns its uniforms and disposal and
+      // cannot clobber the visible sky.
+      sky.material = sky.material.clone()
       sky.scale.setScalar(10000)
       const u = sky.material.uniforms
       u.turbidity.value = l.turbidity

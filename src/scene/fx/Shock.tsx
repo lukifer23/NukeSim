@@ -30,8 +30,8 @@ export function Shock() {
     const hob = s.hobResolved()
     const t = getRenderTime()
     const r = Math.max(shockRadiusAtTimeM(s.yieldKt, hob, t), 8)
-    // Finite life: the front genuinely dissipates instead of leaving permanent
-    // 1.5%-opacity ghost rings on the map forever.
+    // Finite life: the front genuinely dissipates instead of leaving a
+    // permanent low-opacity ghost ring on the map.
     const fade = t < 0.04 ? 0 : Math.max(0, 0.26 * Math.exp(-t / 22) - 0.02)
     if (Math.abs(r - lastR.current) > 4) {
       updateDrapedRing(ringGeo, r, Math.max(16, r * 0.012), city.heightAt, offset.x, offset.z, 2.6)
