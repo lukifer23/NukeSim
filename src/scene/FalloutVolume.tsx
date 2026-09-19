@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { GLSL_HASH2 } from './shaders/glsl'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -22,6 +22,7 @@ export function FalloutVolume() {
           color={c.color}
           wind={wind}
           opacity={0.14 - i * 0.018}
+          arrow={i === 0}
           heightAt={city.heightAt}
           ox={offset.x}
           oz={offset.z}
@@ -36,6 +37,7 @@ function FalloutPoly({
   color,
   wind,
   opacity,
+  arrow,
   heightAt,
   ox,
   oz,
@@ -44,6 +46,7 @@ function FalloutPoly({
   color: string
   wind: number
   opacity: number
+  arrow: boolean
   heightAt: (x: number, z: number) => number
   ox: number
   oz: number
@@ -60,7 +63,7 @@ function FalloutPoly({
         uColor: { value: c },
         uOpacity: { value: opacity },
         uTime: { value: 0 },
-        uWind: { value: wind },
+        uWind: { value: 0 },
       },
       vertexShader: `
         varying vec2 vGz;
@@ -94,7 +97,7 @@ function FalloutPoly({
         }
       `,
     })
-  }, [color, opacity, wind])
+  }, [color, opacity])
 
   const geo = useMemo(() => {
     const shape = new THREE.Shape()
@@ -116,6 +119,11 @@ function FalloutPoly({
     return g
   }, [points, heightAt, ox, oz])
 
+  // R3F does not dispose geometries/materials passed as props, so free the
+  // previous pair when the scenario changes and on unmount.
+  useEffect(() => () => mat.dispose(), [mat])
+  useEffect(() => () => geo.dispose(), [geo])
+
   const dirDeg = useSim((s) => s.windDirDeg)
   useFrame(() => {
     const s = useSim.getState()
@@ -129,7 +137,7 @@ function FalloutPoly({
   return (
     <>
       <mesh geometry={geo} material={mat} />
-      {opacity > 0.15 && (
+      {arrow && wind > 0 && (
         <group position={[Math.sin(dir) * arrowLen * 0.55, 14, Math.cos(dir) * arrowLen * 0.55]} rotation={[0, dir, 0]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <coneGeometry args={[9, 32, 5]} />

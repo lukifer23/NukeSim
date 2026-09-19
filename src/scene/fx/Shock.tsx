@@ -34,8 +34,9 @@ export function Shock() {
     // permanent low-opacity ghost ring on the map.
     const fade = t < 0.04 ? 0 : Math.max(0, 0.26 * Math.exp(-t / 22) - 0.02)
     if (Math.abs(r - lastR.current) > 4) {
-      updateDrapedRing(ringGeo, r, Math.max(16, r * 0.012), city.heightAt, offset.x, offset.z, 2.6)
-      updateDrapedRing(dustGeo, r, Math.max(40, r * 0.045), city.heightAt, offset.x, offset.z, 1.8)
+      // Both rings use MeshBasicMaterial, so normals are never shaded.
+      updateDrapedRing(ringGeo, r, Math.max(16, r * 0.012), city.heightAt, offset.x, offset.z, 2.6, false)
+      updateDrapedRing(dustGeo, r, Math.max(40, r * 0.045), city.heightAt, offset.x, offset.z, 1.8, false)
       lastR.current = r
     }
     const alive = fade > 0.004

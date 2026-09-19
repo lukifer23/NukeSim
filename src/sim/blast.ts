@@ -45,10 +45,25 @@ function interpolateRef(psi: number): number {
 }
 
 /** Invert range tables: peak overpressure at a ground range. */
+const PSI_SAMPLES = [80, 40, 20, 12, 5, 3, 1, 0.5, 0.25, 0.1]
+
+// The range table is pure in (yield, HOB); the scene samples it many times per
+// frame for the same scenario, so build it once and reuse the array.
+let rangeMemoKey = ''
+let rangeMemoRanges: number[] = []
+
+function tabulatedRanges(yieldKt: number, hobM: number): number[] {
+  const key = `${yieldKt}|${hobM}`
+  if (key === rangeMemoKey) return rangeMemoRanges
+  rangeMemoKey = key
+  rangeMemoRanges = PSI_SAMPLES.map((p) => blastGroundRangeM(yieldKt, hobM, p))
+  return rangeMemoRanges
+}
+
 export function overpressureAtRangePsi(yieldKt: number, hobM: number, rangeM: number): number {
   if (rangeM <= 0) return 200
-  const samples = [80, 40, 20, 12, 5, 3, 1, 0.5, 0.25, 0.1]
-  const ranges = samples.map((p) => blastGroundRangeM(yieldKt, hobM, p))
+  const samples = PSI_SAMPLES
+  const ranges = tabulatedRanges(yieldKt, hobM)
   if (rangeM <= ranges[0]) return samples[0]
   if (rangeM >= ranges[ranges.length - 1]) {
     // Beyond the tabulated 0.1 psi sample, the strong-shock R^-3 falloff

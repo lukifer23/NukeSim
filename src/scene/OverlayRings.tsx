@@ -73,10 +73,10 @@ function Ring({
 function RingLabel({ radius, color, text, loft = 28 }: { radius: number; color: string; text: string; loft?: number }) {
   const offset = useSim((s) => s.impactOffset)
   const city = useSim((s) => s.city)
-  const t = useSim((s) => s.simTime)
-  const phase = useSim((s) => s.phase)
+  // Boolean projection: re-render only when the label's visibility flips.
+  const hidden = useSim((s) => s.phase === 'detonate' && s.simTime < 2)
   if (radius < 40) return null
-  if (phase === 'detonate' && t < 2) return null
+  if (hidden) return null
   const x = offset.x + radius * 0.72
   const z = offset.z + radius * 0.72
   const y = city.heightAt(x, z) + loft
@@ -112,7 +112,9 @@ export function OverlayRings() {
   const overlays = useSim((s) => s.overlays)
   const ghost = useSim((s) => s.ghost)
   const showGhost = useSim((s) => s.showGhost)
-  const simTime = useSim((s) => s.simTime)
+  // Derived boolean so the component only re-renders when the label appears,
+  // not on every ~12 Hz sim-time tick.
+  const showFireballLabel = useSim((s) => s.simTime > 24)
 
   const kindOn = (k: EffectKind) => {
     if (k === 'blast') return overlays.blast
@@ -154,7 +156,7 @@ export function OverlayRings() {
         )
       })}
       {overlays.blast && five && <RingLabel radius={five.radiusM} color={five.color} text="5 psi" />}
-      {overlays.fireball && fireball && simTime > 24 && (
+      {overlays.fireball && fireball && showFireballLabel && (
         <RingLabel radius={fireball.radiusM} color="#fff4d6" text="Fireball" />
       )}
       {showGhost && ghost?.rings

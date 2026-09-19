@@ -1,6 +1,7 @@
 import { MUNITIONS, YIELD_NOTCHES } from '../data/munitions'
 import { BurstMode } from '../sim/types'
 import { useSim } from '../state/store'
+import { useShallow } from 'zustand/react/shallow'
 import { classifyTimeOfDay } from '../sim/timeline'
 import { formatRange, formatYield, logYieldFromSlider, sliderFromLogYield } from './format'
 import { cityById } from '../data/cities'
@@ -8,11 +9,45 @@ import { ScenarioShare } from './ScenarioShare'
 import { LESSONS } from '../data/lessons'
 import { missionScenarioMatches } from '../learn/mission'
 import { Chip, Label, Slider } from './controls'
-import { SCENARIO_PRESETS, matchesPreset, type ScenarioPreset } from '../data/presets'
+import { SCENARIO_PRESETS, matchesPreset } from '../data/presets'
 import { ChevronDown, GitCompare, MapPin, Play, Volume2, VolumeX } from 'lucide-react'
 
 export function Bench() {
-  const s = useSim()
+  // Select only what the bench renders so the ~12 Hz sim-time tick does not
+  // re-render the whole Setup panel during playback.
+  const s = useSim(useShallow((st) => ({
+    cityId: st.cityId,
+    munitionId: st.munitionId,
+    yieldKt: st.yieldKt,
+    hobMode: st.hobMode,
+    customHobM: st.customHobM,
+    fissionFraction: st.fissionFraction,
+    windSpeedMps: st.windSpeedMps,
+    windDirDeg: st.windDirDeg,
+    visibilityKm: st.visibilityKm,
+    timeOfDay: st.timeOfDay,
+    showGhost: st.showGhost,
+    muted: st.muted,
+    mission: st.mission,
+    comparison: st.comparison,
+    report: st.report,
+    setMunition: st.setMunition,
+    setYield: st.setYield,
+    setHobMode: st.setHobMode,
+    setCustomHob: st.setCustomHob,
+    setFission: st.setFission,
+    setWind: st.setWind,
+    setVisibility: st.setVisibility,
+    setTimeOfDay: st.setTimeOfDay,
+    setShowGhost: st.setShowGhost,
+    setMuted: st.setMuted,
+    setPhase: st.setPhase,
+    startLaunch: st.startLaunch,
+    saveComparison: st.saveComparison,
+    clearComparison: st.clearComparison,
+    resetScenario: st.resetScenario,
+    hobResolved: st.hobResolved,
+  })))
   const m = MUNITIONS.find((x) => x.id === s.munitionId) ?? MUNITIONS[0]
   const city = cityById(s.cityId)
   const slider = sliderFromLogYield(s.yieldKt)
@@ -53,7 +88,11 @@ export function Bench() {
               key={preset.id}
               on={matchesPreset(preset, s)}
               title={preset.tip}
-              onClick={() => applyPreset(s, preset)}
+              onClick={() => {
+                s.setYield(preset.yieldKt)
+                s.setHobMode(preset.hobMode)
+                s.setFission(preset.fissionFraction)
+              }}
             >
               {preset.label}
             </Chip>
@@ -257,12 +296,6 @@ export function Bench() {
       </section>
     </aside>
   )
-}
-
-function applyPreset(store: ReturnType<typeof useSim.getState>, preset: ScenarioPreset) {
-  store.setYield(preset.yieldKt)
-  store.setHobMode(preset.hobMode)
-  store.setFission(preset.fissionFraction)
 }
 
 function MiniRings() {

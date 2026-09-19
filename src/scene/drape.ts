@@ -61,6 +61,7 @@ export function updateDrapedRing(
   ox: number,
   oz: number,
   lift: number,
+  computeNormals = true,
 ) {
   const pos = geo.attributes.position
   const segs = pos.count / 2 - 1
@@ -79,7 +80,7 @@ export function updateDrapedRing(
     pos.setXYZ(i0 + 1, oxw, heightAt(ox + oxw, oz + ozw) + lift, ozw)
   }
   pos.needsUpdate = true
-  geo.computeVertexNormals()
+  if (computeNormals) geo.computeVertexNormals()
 }
 
 /** Road ribbon from A→B, skipping water, following terrain. */

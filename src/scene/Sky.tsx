@@ -101,7 +101,10 @@ export function Atmosphere() {
       }
       mat.needsUpdate = true
     }
-  }, [gl, camera, look.exposure])
+    // The patch is a constant scale and only needs (re)applying when the sky
+    // mounts. Depending on exposure recompiled the Preetham program on every
+    // lighting tick.
+  }, [gl, camera, night])
 
   return (
     <>
