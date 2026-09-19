@@ -28,7 +28,7 @@ npm test             # physics + city + mission state
 npm run test:coverage # enforced model and state coverage gates
 npm run test:e2e      # desktop/tablet/phone and Academy accessibility
 npm run build
-npm run check:bundle  # 105 KiB main / 360 KiB lazy scene gzip ceilings
+npm run check:bundle  # 110 KiB main / 360 KiB lazy scene gzip ceilings
 npm run check:assets  # 6 MiB packaged visual-asset ceiling
 npm run verify        # full non-hardware release gate
 npm run test:perf     # headed desktop Chrome FPS gate

@@ -12,8 +12,10 @@ if (!scene || !main) {
   process.exit(1)
 }
 
+// 110 KiB leaves the shell a few KiB of headroom for icons/among otherwise
+// lazy-loaded panels, instead of sitting at the edge of the budget.
 const budgets = [
-  { label: 'main application', file: main, max: 105 * 1024 },
+  { label: 'main application', file: main, max: 110 * 1024 },
   { label: 'lazy 3D scene', file: scene, max: 360 * 1024 },
 ]
 

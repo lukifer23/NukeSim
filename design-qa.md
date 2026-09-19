@@ -72,12 +72,13 @@ Five waves of visual, animation, physics, and feel work landed on top of the fid
 - **Controls & view state.** Sliders draw their filled progress so the current value reads at a glance; every overlay row and camera button shows its hotkey (B/T/R/F/L, 1/2/3) with `aria-keyshortcuts`; the header exposes a labeled **Shortcuts** control. The saved draft now also persists the overlay set and camera mode, so a reload resumes the exact view.
 - **Onboarding & presets.** A one-time, dismissible hint points new visitors at the shortcut panel (remembered in local UI preferences). The Setup bench opens with three **Quick scenarios** that pair yield, burst height, and fission (optimized airburst, surface fallout, thermal pulse), each marked when active. The tool/inspector panel choice is remembered per field phase instead of resetting on every transition.
 - **Test depth.** Coverage rose to 93.5% statements / 95.8% lines after unit tests for the munitions presets, scene massing and draped-ring geometry, and error-boundary recovery. CI now runs the Playwright E2E suite (Chromium with software WebGL) alongside the static gates.
+- **Hardening pass.** An audit-driven cleanup tightened the hot paths and the edges: the blast range table is cached per scenario instead of reallocated per call, the sky no longer recompiles on every lighting tick, the fallout material stopped rebuilding on wind changes (and its geometries/materials now dispose), ring labels only re-render when they flip visibility, and the Setup bench and share button subscribe per-field instead of to the whole store. Correctness fixes: lesson progress no longer carries a stale `predictionCorrect` across model versions, shared links keep the disclaimer gate, scenario links reject missing/empty params, reselecting the same city no longer wipes the comparison, and lesson setup can no longer force a custom burst height. Silent failures were closed: guarded `localStorage` access, a rejected audio resume, and childless labels no longer render as no-op buttons. The `--color-faint` token now meets WCAG AA, and disabled controls read as disabled.
 
 ### Current verification
 
-- `npm run verify`: passed — 109 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
+- `npm run verify`: passed — 120 unit tests, coverage gates, build, bundle budgets, asset budget, desktop/tablet/phone E2E, Axe checks, and mission persistence.
 - `npm run test:perf`: passed — headed desktop 10 kt and 1 Mt frame-budget gate.
-- Bundle: main 100.6 / 105 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
+- Bundle: main 101.4 / 110 KiB gzip; lazy scene 343.1 / 360 KiB gzip.
 - Packaged visual assets: 4.97 / 6 MiB.
 
 ### Code health pass
