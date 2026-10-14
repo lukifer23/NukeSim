@@ -4,10 +4,10 @@ Thanks for helping improve NukeSim — an educational nuclear-effects sandbox. T
 
 ## Setup
 
-Requires Node 22+ and npm.
+Requires Node **22.22.2+ in the 22.x series** or **24.15.0+ in the 24.x series**, and npm. These minimums match the locked test dependencies; an arbitrary Node 22 release is not sufficient.
 
 ```bash
-npm install
+npm ci
 npm run dev   # http://localhost:5173
 ```
 
